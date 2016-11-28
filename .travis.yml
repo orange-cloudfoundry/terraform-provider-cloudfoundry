@@ -5,8 +5,10 @@ install:
 - go get github.com/hashicorp/terraform
 - go get github.com/cloudfoundry/cli
 - go get golang.org/x/crypto/openpgp
+- go get github.com/blang/semver
 - cd $GOPATH/src/github.com/cloudfoundry/cli
 - git checkout v6.22.2
+- rm -Rf vendor/github.com/blang/semver
 script:
 - echo ""
 after_success:
