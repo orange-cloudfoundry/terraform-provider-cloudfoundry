@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+echo -e "\nGenerating Binary for ${GOOS} on arch ${GOARCH}..."
+
+if [ $# -eq 0 ]
+  then
+    echo "Usage $0 <version_terraform>"
+    exit 1
+fi
+
+
+CURRENTDIR=`pwd`
+
+go build -o $CURRENTDIR/out/terraform-provider-cloudfoundry_$1
+echo -e "\nGenerating Binary finished."
