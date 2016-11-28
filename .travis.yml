@@ -6,21 +6,22 @@ install:
 - go get github.com/cloudfoundry/cli
 - go get golang.org/x/crypto/openpgp
 - go get github.com/blang/semver
-- pwd
 - cd $GOPATH/src/github.com/cloudfoundry/cli
 - git checkout v6.22.2
 - rm -Rf vendor/github.com/blang/semver
+- cd $GOPATH
+- gopath_to_use=$(pwd)
 script:
 - echo ""
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout v0.7.12
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
-- bin/build-all.sh 0.7
+- GOPATH="${gopath_to_use}" bin/build-all.sh 0.7
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout master
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
-- bin/build-all.sh 0.8
+- GOPATH="${gopath_to_use}" bin/build-all.sh 0.8
 deploy:
   provider: releases
   api_key:
