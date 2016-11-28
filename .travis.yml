@@ -13,6 +13,7 @@ script:
 - echo ""
 after_success:
 - cd $GOPATH/src/github.com/cloudfoundry/cli
+- git checkout v6.22.2
 - git rev-list --max-parents=0 HEAD
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout v0.7.12
