@@ -66,6 +66,9 @@ func (c CfBuildpackResource) Create(d *schema.ResourceData, meta interface{}) er
 		d.SetId(buildpackCf.GUID)
 		buildpack.GUID = buildpackCf.GUID
 	}
+	if c.isSystemBuildpackManaged(buildpack) {
+		return nil
+	}
 	return c.updateBuildpack(client, buildpackCf, buildpack, d.Get("path").(string))
 }
 
@@ -83,6 +86,9 @@ func (c CfBuildpackResource) Exists(d *schema.ResourceData, meta interface{}) (b
 	return true, nil
 }
 func (c CfBuildpackResource) generateFilename(buildpackPath string) (string, error) {
+	if buildpackPath == "" {
+		return "", nil
+	}
 	if (IsWebURL(buildpackPath)) {
 		return path.Base(buildpackPath), nil
 	}
@@ -119,16 +125,27 @@ func (c CfBuildpackResource) Read(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 	d.Set("name", buildpack.Name)
-	if d.Get("path").(string) != "" {
-		d.Set("filename", buildpack.Filename)
-	} else {
-		d.Set("filename", "")
+	bp, err := c.resourceObject(d)
+	if err != nil {
+		return err
+	}
+	if c.isSystemBuildpackManaged(bp) {
+		return nil
+	}
+	if bp.Filename != buildpack.Filename {
+		d.Set("path", buildpack.Filename)
 	}
 	d.Set("position", *buildpack.Position)
 	d.Set("enabled", *buildpack.Enabled)
 	d.Set("locked", *buildpack.Locked)
 	return nil
 
+}
+func (c CfBuildpackResource) isSystemBuildpackManaged(buildpack models.Buildpack) bool {
+	if buildpack.Filename == "" && *buildpack.Position == 1 && *buildpack.Enabled == true && *buildpack.Locked == false {
+		return true
+	}
+	return false
 }
 func (c CfBuildpackResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
