@@ -2,6 +2,8 @@ language: go
 go:
 - 1.7
 install:
+- go get github.com/hashicorp/terraform
+- go get github.com/cloudfoundry/cli
 - go get golang.org/x/crypto/openpgp
 - go get github.com/blang/semver
 - cd $GOPATH/src/github.com/cloudfoundry/cli
@@ -10,6 +12,8 @@ install:
 script:
 - echo ""
 after_success:
+- cd $GOPATH/src/github.com/cloudfoundry/cli
+- git rev-list --max-parents=0 HEAD
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout v0.7.12
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
