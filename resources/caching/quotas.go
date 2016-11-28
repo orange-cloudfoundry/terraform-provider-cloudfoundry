@@ -8,9 +8,9 @@ import (
 var quotas []models.QuotaFields
 var spaceQuotas []models.SpaceQuota
 
-func GetQuotas(client cf_client.Client) ([]models.QuotaFields, error) {
+func GetQuotas(client cf_client.Client, update bool) ([]models.QuotaFields, error) {
 	var err error
-	if quotas != nil {
+	if quotas != nil && !update {
 		return quotas, nil
 	}
 	quotas, err = client.Quotas().FindAll()
@@ -20,9 +20,9 @@ func GetQuotas(client cf_client.Client) ([]models.QuotaFields, error) {
 	return quotas, err
 }
 
-func GetSpaceQuotasFromOrg(client cf_client.Client, orgId string) ([]models.SpaceQuota, error) {
+func GetSpaceQuotasFromOrg(client cf_client.Client, orgId string, update bool) ([]models.SpaceQuota, error) {
 	var err error
-	if spaceQuotas != nil {
+	if spaceQuotas != nil && !update {
 		return spaceQuotas, nil
 	}
 	spaceQuotas, err = client.SpaceQuotas().FindByOrg(orgId)

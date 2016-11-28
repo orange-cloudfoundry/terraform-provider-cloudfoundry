@@ -113,7 +113,7 @@ func (c CfSpaceResource) updateSecGroups(client cf_client.Client, secGroupFrom, 
 func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields []models.SecurityGroupFields) []models.SecurityGroupFields {
 	secGroupsFiltered := make([]models.SecurityGroupFields, 0)
 	for _, secGroupField := range secGroupFields {
-		secGroup, _ := caching.GetSecGroupFromCf(client, secGroupField.GUID)
+		secGroup, _ := caching.GetSecGroupFromCf(client, secGroupField.GUID, false)
 		if secGroup.GUID == "" || len(secGroup.Spaces) == 0 {
 			continue
 		}
@@ -233,6 +233,7 @@ func (c CfSpaceResource) Schema() map[string]*schema.Schema {
 		"allow_ssh": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
+			Default: true,
 		},
 	}
 }

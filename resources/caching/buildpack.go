@@ -7,9 +7,9 @@ import (
 
 var buildpacks []models.Buildpack
 
-func GetBuildpacks(client cf_client.Client) ([]models.Buildpack, error) {
+func GetBuildpacks(client cf_client.Client, update bool) ([]models.Buildpack, error) {
 	var err error
-	if buildpacks != nil {
+	if buildpacks != nil && !update {
 		return buildpacks, nil
 	}
 	buildpacks = make([]models.Buildpack, 0)

@@ -7,9 +7,9 @@ import (
 
 var secGroups []models.SecurityGroup
 
-func GetSecGroupsFromCf(client cf_client.Client) ([]models.SecurityGroup, error) {
+func GetSecGroupsFromCf(client cf_client.Client, update bool) ([]models.SecurityGroup, error) {
 	var err error
-	if secGroups != nil {
+	if secGroups != nil && !update {
 		return secGroups, nil
 	}
 	secGroups, err = client.SecurityGroups().FindAll()
@@ -19,8 +19,8 @@ func GetSecGroupsFromCf(client cf_client.Client) ([]models.SecurityGroup, error)
 	return secGroups, err
 }
 
-func GetSecGroupFromCf(client cf_client.Client, secGroupId string) (models.SecurityGroup, error) {
-	secGroups, err := GetSecGroupsFromCf(client)
+func GetSecGroupFromCf(client cf_client.Client, secGroupId string, update bool) (models.SecurityGroup, error) {
+	secGroups, err := GetSecGroupsFromCf(client, update)
 	if err != nil {
 		return models.SecurityGroup{}, err
 	}

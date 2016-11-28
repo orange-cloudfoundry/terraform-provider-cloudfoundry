@@ -134,15 +134,15 @@ func (c CfQuotaResource) Create(d *schema.ResourceData, meta interface{}) error 
 func (c CfQuotaResource) isOrgQuota(d *schema.ResourceData) bool {
 	return d.Get("org_id").(string) == ""
 }
-func (c CfQuotaResource) getQuotaFromCf(client cf_client.Client, d *schema.ResourceData) (interface{}, error) {
+func (c CfQuotaResource) getQuotaFromCf(client cf_client.Client, d *schema.ResourceData, updateCache bool) (interface{}, error) {
 	var quotas interface{}
 	var err error
 	quotaGuid := d.Id()
 
 	if c.isOrgQuota(d) {
-		quotas, err = caching.GetQuotas(client)
+		quotas, err = caching.GetQuotas(client, updateCache)
 	} else {
-		quotas, err = caching.GetSpaceQuotasFromOrg(client, d.Get("org_id").(string))
+		quotas, err = caching.GetSpaceQuotasFromOrg(client, d.Get("org_id").(string), updateCache)
 	}
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (c CfQuotaResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	quotaName := d.Get("name").(string)
 
-	quota, err := c.getQuotaFromCf(client, d)
+	quota, err := c.getQuotaFromCf(client, d, true)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (c CfQuotaResource) Update(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	quotaCf, err := c.getQuotaFromCf(client, d)
+	quotaCf, err := c.getQuotaFromCf(client, d, false)
 	if err != nil {
 		return err
 	}

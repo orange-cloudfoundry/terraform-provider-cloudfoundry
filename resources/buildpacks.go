@@ -54,7 +54,7 @@ func (c CfBuildpackResource) Create(d *schema.ResourceData, meta interface{}) er
 			client.Config().ApiEndpoint,
 			buildpack.Name,
 		)
-		buildpackCf, err = c.getBuildpackFromCf(client, d.Id())
+		buildpackCf, err = c.getBuildpackFromCf(client, d.Id(), false)
 		if err != nil {
 			return err
 		}
@@ -105,13 +105,13 @@ func (c CfBuildpackResource) generateFilename(buildpackPath string) (string, err
 func (c CfBuildpackResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	name := d.Get("name").(string)
-	buildpack, err := c.getBuildpackFromCf(client, d.Id())
+	buildpack, err := c.getBuildpackFromCf(client, d.Id(), true)
 	if err != nil {
 		return err
 	}
 	if buildpack.GUID == "" {
 		log.Printf(
-			"[WARN] removing organization %s/%s from state because it no longer exists in your Cloud Foundry",
+			"[WARN] removing buildpack %s/%s from state because it no longer exists in your Cloud Foundry",
 			client.Config().ApiEndpoint,
 			name,
 		)
@@ -137,7 +137,7 @@ func (c CfBuildpackResource) Update(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
-	buildpackCf, err := c.getBuildpackFromCf(client, d.Id())
+	buildpackCf, err := c.getBuildpackFromCf(client, d.Id(), false)
 	if err != nil {
 		return err
 	}
@@ -181,10 +181,17 @@ func (c CfBuildpackResource) updateBuildpack(client cf_client.Client, buildpackF
 }
 func (c CfBuildpackResource) Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
+	bp, err := c.resourceObject(d)
+	if err != nil {
+		return err
+	}
+	if c.isSystemBuildpackManaged(bp) {
+		return nil
+	}
 	return client.Buildpack().Delete(d.Id())
 }
-func (c CfBuildpackResource) getBuildpackFromCf(client cf_client.Client, bpGuid string) (models.Buildpack, error) {
-	buildpacks, err := caching.GetBuildpacks(client)
+func (c CfBuildpackResource) getBuildpackFromCf(client cf_client.Client, bpGuid string, updateCache bool) (models.Buildpack, error) {
+	buildpacks, err := caching.GetBuildpacks(client, updateCache)
 	if err != nil {
 		return models.Buildpack{}, err
 	}

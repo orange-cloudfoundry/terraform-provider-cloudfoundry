@@ -107,7 +107,7 @@ func (c CfSecurityGroupResource) Create(d *schema.ResourceData, meta interface{}
 func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroupName := d.Get("name").(string)
-	secGroup, err := c.getSecGroupFromCf(client, d.Id())
+	secGroup, err := c.getSecGroupFromCf(client, d.Id(), true)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) 
 func (c CfSecurityGroupResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroup := c.resourceObject(d)
-	secGroupCf, err := c.getSecGroupFromCf(client, d.Id())
+	secGroupCf, err := c.getSecGroupFromCf(client, d.Id(), false)
 	if err != nil {
 		return err
 	}
@@ -237,8 +237,8 @@ func (c CfSecurityGroupResource) existsSecurityGroup(secGroups []models.Security
 	}
 	return false
 }
-func (c CfSecurityGroupResource) getSecGroupFromCf(client cf_client.Client, secGroupId string) (models.SecurityGroupFields, error) {
-	secGroups, err := caching.GetSecGroupsFromCf(client)
+func (c CfSecurityGroupResource) getSecGroupFromCf(client cf_client.Client, secGroupId string, updateCache bool) (models.SecurityGroupFields, error) {
+	secGroups, err := caching.GetSecGroupsFromCf(client, updateCache)
 	if err != nil {
 		return models.SecurityGroupFields{}, err
 	}
@@ -252,7 +252,7 @@ func (c CfSecurityGroupResource) getSecGroupFromCf(client cf_client.Client, secG
 func (c CfSecurityGroupResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	name := d.Get("name").(string)
-	secGroups, err := caching.GetSecGroupsFromCf(client)
+	secGroups, err := caching.GetSecGroupsFromCf(client, true)
 	if err != nil {
 		return false, err
 	}
