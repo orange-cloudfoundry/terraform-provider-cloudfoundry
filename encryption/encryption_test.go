@@ -1,0 +1,44 @@
+package encryption_test
+
+import (
+	. "github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("Encryption", func() {
+	encPrivKey := "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"
+	encMessage := "hQEMAxBftgU+yseEAQf/TIhwU6XhiSJX3XURcbwZGYlU1BAkXMKXyNqdyqcdPw3oLez2kYxNYA/Paqa5wKXW2pnlLLgxJ33WpjakTPLp/59jmfAz99tx4ry4aCixTQlti0ApeUtBFTlK4hnyk2L3Imu3LOVOuGpW8ItYIR5wjYdVS4fGbH2apB9GbLAAEDYo7ueym8DsLH8lyArorjENPbsbDKrClZnuuf3UV8Mwdg8X3/8CtxFEB7ehC0oUwB6JFM1HdkW5UdpVxsb6E3rkM84rnjQ5tUZGYhOENNOG27QkNOyxtHCzjd4SR2bxCYzxW+3OCHF7MwVX1dpTvnX00LWJXDJ95aRh/XzyeTpOitJGAfkNh84OEcuqAlYcoN9LQv3zrE3RjtGDfViq5LIswiRuSZ9cXQ4s/73xSglK6dzYD2Mdq4wvA5hnih0W+CZXIie38Q5nLQ=="
+	passphrase := "ahaletcf"
+
+	Context("When want to decrypt a message", func() {
+		It("should decrypt it if a private key was given", func() {
+			decrypter := Decrypter{
+				PrivateKey: encPrivKey,
+				Passphrase: passphrase,
+			}
+			decMessage, err := decrypter.Decrypt(encMessage)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(decMessage).Should(Equal("mypassword"))
+		})
+		It("should send back message without decrypting it if a private key was not given", func() {
+			decrypter := Decrypter{
+				Passphrase: passphrase,
+			}
+			decMessage, err := decrypter.Decrypt(encMessage)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(decMessage).Should(Equal(encMessage))
+		})
+		It("should send back message without decrypting it if message is not encrypted", func() {
+			message := "mymessage"
+			decrypter := Decrypter{
+				PrivateKey: encPrivKey,
+				Passphrase: passphrase,
+			}
+			decMessage, err := decrypter.Decrypt(message)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(decMessage).Should(Equal(message))
+		})
+	})
+})
