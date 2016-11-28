@@ -27,7 +27,23 @@ Terraform has also been experienced in this case of use case (e.g.: github provi
 
 ## Installations
 
-**Requirements:** You need, of course, terraform available here: https://www.terraform.io/downloads.html
+**Requirements:** You need, of course, terraform (**>=0.7**) which is available here: https://www.terraform.io/downloads.html
+
+### Automatic
+
+#### via curl
+
+```bash
+$ sh -c "$(curl -fsSL https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/master/bin/install.sh)"
+```
+
+#### via wget
+
+```bash
+$ sh -c "$(wget https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/master/bin/install.sh -O -)"
+```
+
+### Manually
 
 1. Get the build for your system in releases: https://github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/releases/latest
 2. Create a `providers` directory inside terraform user folder: `mkdir -p ~/.terraform.d/providers`
@@ -37,7 +53,7 @@ Terraform has also been experienced in this case of use case (e.g.: github provi
 ```bash
 cat <<EOF > ~/.terraformrc
 providers {
-    cloudfoundry = "~/.terraform.d/providers/terraform-provider-cloudfoundry"
+    cloudfoundry = "/full/path/to/.terraform.d/providers/terraform-provider-cloudfoundry"
 }
 EOF
 ```
@@ -61,7 +77,7 @@ provider "cloudfoundry" {
 }
 ```
 
-- **name**: *(**Required**, Env Var: `CF_API`)* Your Cloud Foundry api url.
+- **name**: (**Required**, *Env Var: `CF_API`*) Your Cloud Foundry api url.
 - **username**: *(Optional, default: `null`, Env Var: `CF_USERNAME`)* The username of an admin user. (Optional if you use an access token)
 - **password**: *(Optional, default: `null`, Env Var: `CF_PASSWORD`)* The password of an admin user. (Optional if you use an access token)
 - **skip_ssl_validation**: *(Optional, default: `false`)* Set to true to skip verification of the API endpoint. Not recommended!.
@@ -84,7 +100,7 @@ resource "cloudfoundry_organization" "org_mysuperorg" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your organization.
+- **name**: (**Required**) Name of your organization.
 - **is_system_domain**: *(Optional, default: `false`)* set it to true only if this organization is a system_domain organization, it will prevent deletion on Cloud Foundry.
 - **quota_id**: *(Optional, default: `null`)* Give a quota id (created from resource [cloudfoundry_quota](#quotas)) to set a quota on this org.
 
@@ -100,8 +116,8 @@ resource "cloudfoundry_space" "space_mysuperspace" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your space.
-- **org_id**: *(**Required**)* Organization id created from resource [cloudfoundry_organization](#organizations).
+- **name**: (**Required**) Name of your space.
+- **org_id**: (**Required**) Organization id created from resource [cloudfoundry_organization](#organizations).
 - **allow_ssh**: *(Optional, default: `true`)* Set to `false` to remove ssh access on app instances inside this space.
 - **sec_groups**: *(Optional, default: `null`)* This is a list of security groups id created from [cloudfoundry_sec_group](#security-groups), it will bind each security group on this space.
 - **quota_id**: *(Optional, default: `null`)* Give a quota id (created from resource [cloudfoundry_quota](#quotas)) to set a quota on this space.
@@ -125,7 +141,7 @@ resource "cloudfoundry_quota" "quota_for_ahalet" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your quota.
+- **name**: (**Required**) Name of your quota.
 - **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
 - **total_memory**: *(Optional, default: `20240M`)* Total amount of memory a space can have (e.g. 1024M, 1G, 10G).
 - **total_instance_memory**: *(Optional, default: `-1`)* Maximum amount of memory an application instance can have (e.g. 1024M, 1G, 10G). -1 represents an unlimited amount.
@@ -166,11 +182,11 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your security group.
-- **on_staging**: *(Optional, default: `false`)* Set to true to apply this security during staging an app.
-- **on_running**: *(Optional, default: `false`)* Set to true to apply this security during running an app.
+- **name**: (**Required**) Name of your security group.
+- **on_staging**: *(Optional, default: `false`)* Set to true to apply this security group during staging an app.
+- **on_running**: *(Optional, default: `false`)* Set to true to apply this security group during running an app.
 - **rules**: *(Optional, default: `null`)* Add rules as many as you need: 
-  - **protocol**: *(**Required**)* The protocol to use, it can be `tcp`, `udp`, `icmp`, or `all`
+  - **protocol**: (**Required**) The protocol to use, it can be `tcp`, `udp`, `icmp`, or `all`
   - **destination**: *(Optional, default: `null`)* A single IP address, an IP address range (e.g. 192.0.2.0-192.0.1-4), or a CIDR block to allow network access to.
   - **ports**: *(Optional, default: `null`)* A single port, multiple comma-separated ports, or a single range of ports that can receive traffic, e.g. `"443"`, `"80,8080,8081"`, `"8080-8081"`. Required when `protocol` is `tcp` or `udp`. 
   - **code**: *(Optional, default: `null`)* ICMP code. Required when `protocol` is `icmp`. 
@@ -190,7 +206,7 @@ resource "cloudfoundry_buildpack" "static_mysuperbuildpack" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your buildpack. **Note**: if there is only name inside your buildpack the provider will consider your buildpack as a system managed buildpack (e.g.: `php_buildpack`, `java_buildpack`), so if you remove it from your tf file it will not be removed from your Cloud Foundry.
+- **name**: (**Required**) Name of your buildpack. **Note**: if there is only name inside your buildpack the provider will consider your buildpack as a system managed buildpack (e.g.: `php_buildpack`, `java_buildpack`), so if you remove it from your tf file it will not be removed from your Cloud Foundry.
 - **path**: *(Optional, default: `null`)* Path should be a zip file, a url to a zip file, or a local directory which contains your buildpack code.
 - **position**: *(Optional, default: `null`)* Position is a positive integer, sets priority, and is sorted from lowest to highest.
 - **enabled**: *(Optional, default: `true`)* Set to `false` to disable the buildpack to be used for staging.
@@ -213,12 +229,12 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 }
 ```
 
-- **name**: *(**Required**)* Name of your service broker.
-- **url**: *(**Required**)* URL to access to your service broker.
+- **name**: (**Required**) Name of your service broker.
+- **url**: (**Required**) URL to access to your service broker.
 - **username**: *(Optional, default: `null`)* Username to authenticate to your service broker.
 - **password**: *(Optional, default: `null`)* Password to authenticate to your service broker. **Note**: you can pass a base 64 encrypted gpg message if you [enabled password encryption](#enable-password-encryption).
-- **service_access**: *(**Required**)* Add service access as many as you need, service access make you service broker accessible on marketplace:
-  - **service**: *(**Required**)* Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
+- **service_access**: (**Required**) Add service access as many as you need, service access make you service broker accessible on marketplace:
+  - **service**: (**Required**) Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
   - **plan**: *(Optional, default: `null`)* Plan from your service broker catalog attached to this service to activate. **Note**: if no `org_id` is given it will enable this plan on all orgs.
   - **org_id**: *(Optional, default: `null`)* Org id created from resource [cloudfoundry_organization](#organizations) to activate this service. **Note**: if no `plan` is given it will all plans on this org.
   
