@@ -29,7 +29,7 @@ Terraform has also been experienced in this case of use case (e.g.: github provi
 
 **Requirements:** You need, of course, terraform available here: https://www.terraform.io/downloads.html
 
-1. Get the build for your system in releases: https://github.com/orange-cloudfoundry/db-dumper-service/releases/latest
+1. Get the build for your system in releases: https://github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/releases/latest
 2. Create a `providers` directory inside terraform user folder: `mkdir -p ~/.terraform.d/providers`
 3. Move the provider previously downloaded in this folder: `mv /path/to/download/directory/terraform-provider-cloudfoundry ~/.terraform.d/providers`
 4. Ensure provider is executable: `chmod +x ~/.terraform.d/providers/terraform-provider-cloudfoundry`
