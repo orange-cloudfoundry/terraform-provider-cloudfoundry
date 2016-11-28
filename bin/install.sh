@@ -7,7 +7,7 @@ OWNER="orange-cloudfoundry"
 cd -- "${TMPDIR:?NO TEMP DIRECTORY FOUND!}" || exit
 cd -
 
-which terraform
+which terraform &> /dev/null
 if [[ $? != 0 ]]; then
     echo "you must have terraform installed"
 fi
@@ -41,7 +41,7 @@ fi
 if [[ "$CPUINFO" == "arm"* ]]; then
     ARCH="arm"
 fi
-FILENAME="${NAME}_${OS}_${ARCH}_${tf_version}"
+FILENAME="${NAME}_${tf_version}_${OS}_${ARCH}"
 if [[ "$OS" == "windows" ]]; then
     FILENAME="${FILENAME}.exe"
 fi
@@ -71,21 +71,25 @@ fi
 chmod +x "$FILEOUTPUT"
 mkdir -p ~/.terraform.d/providers/
 if [[ "$OS" == "windows" ]]; then
-    mv "$FILEOUTPUT" "~/.terraform.d/providers/${NAME}"
+    mv "$FILEOUTPUT" "${HOME}/.terraform.d/providers/${NAME}"
 else
-    mv "$FILEOUTPUT" "~/.terraform.d/providers/${NAME}"
+    mv "$FILEOUTPUT" "${HOME}/.terraform.d/providers/${NAME}"
 fi
-
-
-grep -Fxq "providers {" ~/.terraformrc
+provider_path="${HOME}/.terraform.d/providers/terraform-provider-cloudfoundry"
+grep -Fxq "providers {" ~/.terraformrc &> /dev/null
 if [[ $? != 0 ]]; then
-    cat <<EOF >> .terraformrc
+    cat <<EOF >> ~/.terraformrc
 providers {
-    cloudfoundry = "~/.terraform.d/providers/terraform-provider-cloudfoundry"
+    cloudfoundry = "$provider_path"
 }
 EOF
 else
-    awk '/providers {/ { print; print "cloudfoundry = \"~/.terraform.d/providers/terraform-provider-cloudfoundry\""; next }1' ~/.terraformrc > /tmp/.terraformrc
+    grep -Fxq "cloudfoundry" ~/.terraformrc &> /dev/null
+    if [[ $? != 0 ]]; then
+        echo "${NAME} has been installed."
+        exit 0
+    fi
+    awk '/providers {/ { print; print "cloudfoundry = \"provider_path\""; next }1' ~/.terraformrc > /tmp/.terraformrc
     mv /tmp/.terraformrc ~/
 fi
 
