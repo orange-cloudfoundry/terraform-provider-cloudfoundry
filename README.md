@@ -266,14 +266,14 @@ provider "cloudfoundry" {
 
 1. Get the public key previously created (`ppublic.key`)
 2. Import the key with `gpg --import public.key`
-3. generate the encrypted password with commands `echo "mypassword" | gpg --recipient cloudfoundry --encrypt | base64 > encrypted_pass.gpg`
+3. generate the encrypted password with commands `echo "mypassword" | gpg --encrypt --armor -r cloudfoudry > encrypted_pass.key`
 4. Retrieve it from your resource, e.g.:
 ```tf
 resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
   name = "mysuperbroker"
   url = "http://url.of.my.service.broker.com"
   username = "user"
-  password = "${file("encrypted_pass.gpg")}"
+  password = "${file("encrypted_pass.key")}"
   service_access {
     service = "service_name_from_service_broker_catalog"
   }
