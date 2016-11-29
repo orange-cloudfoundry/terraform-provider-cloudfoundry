@@ -317,7 +317,21 @@ func (c CfServiceBrokerResource) updateServiceAccessWithPlanAndOrg(client cf_cli
 		return errors.New(fmt.Sprintf("Plan '%s' doesn't exist in service '%s'.",
 			serviceAccess.Service, serviceAccess.Plan))
 	}
-	return client.ServicePlanVisibilities().Create(plan.GUID, serviceAccess.OrgId)
+	err := client.ServicePlanVisibilities().Create(plan.GUID, serviceAccess.OrgId)
+	if err != nil {
+		if strings.Contains(err.Error(), "This combination of ServicePlan and Organization is already taken") {
+			log.Printf(
+				"[INFO] skipping creation of service access %s on org %s with plan %s",
+				client.Config().ApiEndpoint,
+				serviceAccess.Service,
+				serviceAccess.OrgId,
+				serviceAccess.Plan,
+			)
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 func (c CfServiceBrokerResource) getService(serviceBroker models.ServiceBroker, serviceName string) models.ServiceOffering {
 	for _, service := range serviceBroker.Services {
