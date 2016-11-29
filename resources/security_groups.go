@@ -46,6 +46,12 @@ func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map
 	if _, ok := rule["type"]; !ok {
 		unSanitizedRule["type"] = 0
 	}
+	if _, ok := rule["ports"]; !ok {
+		unSanitizedRule["ports"] = ""
+	}
+	if _, ok := rule["destination"]; !ok {
+		unSanitizedRule["destination"] = ""
+	}
 	for index, content := range rule {
 		unSanitizedRule[index] = content
 	}
@@ -59,6 +65,12 @@ func (c CfSecurityGroupResource) sanitizeRule(rule map[string]interface{}) map[s
 			continue
 		}
 		if index == "type" && content.(int) == 0 {
+			continue
+		}
+		if index == "ports" && content.(string) == "" {
+			continue
+		}
+		if index == "destination" && content.(string) == "" {
 			continue
 		}
 		sanitizedRule[index] = content
