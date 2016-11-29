@@ -16,7 +16,7 @@ import (
 	"regexp"
 )
 
-var validProtocoles []string = []string{"icm", "tcp", "udp", "all"}
+var validProtocoles []string = []string{"icmp", "tcp", "udp", "all"}
 
 type CfSecurityGroupResource struct {
 	CfResource
