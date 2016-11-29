@@ -63,9 +63,9 @@ func (c CfBuildpackResource) Create(d *schema.ResourceData, meta interface{}) er
 		if err != nil {
 			return err
 		}
-		d.SetId(buildpackCf.GUID)
-		buildpack.GUID = buildpackCf.GUID
+		c.Exists(d, meta)
 	}
+	buildpack.GUID = d.Id()
 	if c.isSystemBuildpackManaged(buildpack) {
 		return nil
 	}
@@ -132,7 +132,7 @@ func (c CfBuildpackResource) Read(d *schema.ResourceData, meta interface{}) erro
 	if c.isSystemBuildpackManaged(bp) {
 		return nil
 	}
-	if bp.Filename != buildpack.Filename {
+	if bp.Filename != buildpack.Filename && d.Get("path").(string) != "" {
 		d.Set("path", buildpack.Filename)
 	}
 	d.Set("position", *buildpack.Position)
