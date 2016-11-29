@@ -73,7 +73,6 @@ provider "cloudfoundry" {
   verbose = false
   user_access_token = "bearer key"
   user_refresh_token = "bearer key"
-  locale = "en_US"
 }
 ```
 
@@ -81,12 +80,11 @@ provider "cloudfoundry" {
 - **username**: *(Optional, default: `null`, Env Var: `CF_USERNAME`)* The username of an admin user. (Optional if you use an access token)
 - **password**: *(Optional, default: `null`, Env Var: `CF_PASSWORD`)* The password of an admin user. (Optional if you use an access token)
 - **skip_ssl_validation**: *(Optional, default: `false`)* Set to true to skip verification of the API endpoint. Not recommended!.
-- **enc_private_key**: *(Optional, default: `null`, Env Var: `CF_ENC_PRIVATE_KEY`)* One or multiple GPG private key(s) in base64. Need a passphrase with `enc_passphrase`.
+- **enc_private_key**: *(Optional, default: `null`, Env Var: `CF_ENC_PRIVATE_KEY`)* A GPG private key(s) generate from `gpg --export-secret-key -a <real name>` . Need a passphrase with `enc_passphrase`..
 - **enc_passphrase**: *(Optional, default: `null`, Env Var: `CF_ENC_PASSPHRASE`)* The passphrase for your gpg key.
 - **verbose**: *(Optional, default: `null`)* Set to true to see requests sent to Cloud Foundry. (Use `TF_LOG=1` to see them)
 - **user_access_token**: *(Optional, default: `null`, Env Var: `CF_TOKEN`)* The OAuth token used to connect to a Cloud Foundry. (Optional if you use 'username' and 'password')
 - **user_refresh_token**: *(Optional, default: `null`)* The OAuth refresh token used to refresh your token.
-- **locale**: *(Optional, default: `en_US`)* Set the locale for translation.
 
 ## Resources
 
@@ -174,9 +172,6 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
   rules {
       protocol = "all"
       destination = "10.0.0.0/24"
-      ports = "6000-6500"
-      type = 3
-      code = 1
       log = true
     }
 }
@@ -226,6 +221,12 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
     plan = "plan_from_service_broker_catalog"
     org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
   }
+  service_access {
+    service = "service_name_from_service_broker_catalog"
+    plan = "plan2_from_service_broker_catalog"
+    org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+  }
+  #...
 }
 ```
 

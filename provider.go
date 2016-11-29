@@ -63,12 +63,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("CF_TOKEN", ""),
 				Description: descriptions["user_access_token"],
 			},
-			"locale": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "en_US",
-				Description: descriptions["locale"],
-			},
 			"verbose": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -99,7 +93,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Password:           d.Get("password").(string),
 		UserRefreshToken:   parseToken(d.Get("user_refresh_token").(string)),
 		UserAccessToken:    parseToken(d.Get("user_access_token").(string)),
-		Locale:             d.Get("locale").(string),
+		Locale:             "en_US",
 		Verbose:            d.Get("verbose").(bool),
 		SkipInsecureSSL:    d.Get("skip_ssl_validation").(bool),
 		EncPrivateKey:      d.Get("enc_private_key").(string),
