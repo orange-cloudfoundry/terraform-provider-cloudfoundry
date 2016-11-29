@@ -140,7 +140,7 @@ func init() {
 
 		"skip_ssl_validation": "Set to true to skip verification of the API endpoint. Not recommended!",
 
-		"enc_private_key": "One or multiple GPG private key(s) in base64. Need a passphrase with 'enc_passphrase'.",
+		"enc_private_key": "A GPG private key(s) generate from `gpg --export-secret-key -a <real name>` . Need a passphrase with 'enc_passphrase'.",
 
 		"enc_passphrase": "The passphrase for your gpg key.",
 	}

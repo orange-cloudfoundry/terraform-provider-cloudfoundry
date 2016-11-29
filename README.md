@@ -109,7 +109,7 @@ resource "cloudfoundry_organization" "org_mysuperorg" {
 ```tf
 resource "cloudfoundry_space" "space_mysuperspace" {
     name = "mysuperspace"
-    org_id = "${loudfoundry_organization.org_mysuperorg.id}"
+    org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
     quota_id = "${cloudfoundry_quota.quota_mysuperquota.id}"
     sec_groups = ["${cloudfoundry_sec_group.sec_group_mysupersecgroup.id}"]
     allow_ssh = true
@@ -197,7 +197,7 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
 ### Buildpacks
 
 ```tf
-resource "cloudfoundry_buildpack" "static_mysuperbuildpack" {
+resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
   name = "mysuperbuildpack"
   path = "https://github.com/cloudfoundry/staticfile-buildpack/releases/download/v1.3.13/staticfile_buildpack-cached-v1.3.13.zip"
   position = 13
@@ -250,22 +250,22 @@ You can use gpg encryption to encrypt your service broker password.
 
 1. run `gpg --gen-key`, next steps will assume that you put `cloudfoudry` as real name. (Do not forget to remember your passphrase!)
 2. go on your terraform folder config in command line
-3. run `base64 -i ~/.gnupg/secring.gpg > secring_b64.gpg`
-4. inside provider configuration put those two key/value pairs (you can also copy content of `secring_b64.gpg` and `export CF_ENC_PRIVATE_KEY=content_of_secring_b64.gpg && export CF_ENC_PASSPHRASE=your_passphrase_that_you_remembered:)`): 
+3. run `gpg --export-secret-key -a cloudfoudry > private.key`
+4. inside provider configuration put those two key/value pairs (you can also copy content of `private.key` and `export CF_ENC_PRIVATE_KEY=content_of_private.key && export CF_ENC_PASSPHRASE=your_passphrase_that_you_remembered:)`): 
 ```tf
 provider "cloudfoundry" {
-  enc_private_key = "${file("secring_b64.gpg")}"
+  enc_private_key = "${file("private.key")}"
   enc_passphrase = "your_passphrase_that_you_remembered:)"
 }
 ```
-5. create the public key with `gpg --output pubkey.asc --armor --export`
+5. create the public key with `gpg --export -a cloudfoudry > public.key`
 6. Share the public key to the rest of your team to let them encrypt password with it (see [Encrypt password](#encrypt-password))
 7. you're done
 
 ### Encrypt password
 
-1. Get the public key previously created (`pubkey.asc`)
-2. Import the key with `gpg --import pubkey.asc`
+1. Get the public key previously created (`ppublic.key`)
+2. Import the key with `gpg --import public.key`
 3. generate the encrypted password with commands `echo "mypassword" | gpg --recipient cloudfoundry --encrypt | base64 > encrypted_pass.gpg`
 4. Retrieve it from your resource, e.g.:
 ```tf

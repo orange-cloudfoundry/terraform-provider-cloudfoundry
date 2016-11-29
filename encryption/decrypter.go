@@ -6,6 +6,9 @@ import (
 	"io/ioutil"
 	"golang.org/x/crypto/openpgp"
 	"strings"
+	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/openpgp/packet"
+	"io"
 )
 
 type Decrypter struct {
@@ -27,24 +30,17 @@ func (d Decrypter) sanitizeString(value string) string {
 }
 
 func (d Decrypter) Decrypt(encString string) (string, error) {
-	privateKey, err := d.getPrivateKeyBase64Decode()
-	if err != nil {
-		return "", err
-	}
-	if len(privateKey) == 0 {
-		return encString, nil
-	}
+
 	// init some vars
 	var entity *openpgp.Entity
-	var entityList openpgp.EntityList
-
 	// Open the private key file
-	buf := bytes.NewBuffer(privateKey)
-	entityList, err = openpgp.ReadKeyRing(buf)
+	buf := bytes.NewBuffer([]byte(d.PrivateKey))
+	blockPrivateKey, err := armor.Decode(buf)
 	if err != nil {
-		return "", err
+		return encString, nil
 	}
-	entity = entityList[0]
+	packetDecoder := packet.NewReader(blockPrivateKey.Body)
+	entity, err = openpgp.ReadEntity(packetDecoder)
 
 	// Get the passphrase and read the private key.
 	// Have not touched the encrypted string yet
@@ -54,12 +50,24 @@ func (d Decrypter) Decrypt(encString string) (string, error) {
 		subkey.PrivateKey.Decrypt(passphraseByte)
 	}
 	// Decode the base64 string
-	dec, err := base64.StdEncoding.DecodeString(encString)
+	var dec io.Reader
+
+	blockPublicKey, err := armor.Decode(bytes.NewBuffer([]byte(encString)))
 	if err != nil {
-		return encString, nil
+		decBase64, err := base64.StdEncoding.DecodeString(encString)
+		if err != nil {
+			return encString, nil
+		}
+		dec = bytes.NewBuffer(decBase64)
+	} else {
+		dec = blockPublicKey.Body
 	}
+
+
 	// Decrypt it with the contents of the private key
-	md, err := openpgp.ReadMessage(bytes.NewBuffer(dec), entityList, nil, nil)
+
+
+	md, err := openpgp.ReadMessage(dec, openpgp.EntityList([]*openpgp.Entity{entity}), nil, nil)
 	if err != nil {
 		return encString, nil
 	}
