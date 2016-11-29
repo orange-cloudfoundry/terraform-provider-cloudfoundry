@@ -316,7 +316,7 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 						Optional: true,
 						ValidateFunc: func(elem interface{}, index string) ([]string, []error) {
 							ports := elem.(string)
-							match, _ := regexp.MatchString("^[0-9][0-9-,]+[^-,]$", ports)
+							match, _ := regexp.MatchString("^[0-9][0-9-,],[0-9]?$", ports)
 							if match {
 								return make([]string, 0), make([]error, 0)
 							}

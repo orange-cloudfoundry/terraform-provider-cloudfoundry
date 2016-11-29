@@ -16,12 +16,6 @@ type Decrypter struct {
 	Passphrase string
 }
 
-func (d Decrypter) getPrivateKeyBase64Decode() ([]byte, error) {
-	if d.PrivateKey == "" {
-		return make([]byte, 0), nil
-	}
-	return base64.StdEncoding.DecodeString(d.sanitizeString(d.PrivateKey))
-}
 func (d Decrypter) sanitizeString(value string) string {
 	value = strings.TrimSpace(value)
 	value = strings.Trim(value, "\n")
