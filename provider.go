@@ -26,28 +26,24 @@ func Provider() terraform.ResourceProvider {
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				DefaultFunc: schema.EnvDefaultFunc("CF_USERNAME", nil),
 				Description: descriptions["username"],
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				DefaultFunc: schema.EnvDefaultFunc("CF_PASSWORD", ""),
 				Description: descriptions["password"],
 			},
 			"enc_private_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PRIVATE_KEY", nil),
 				Description: descriptions["enc_private_key"],
 			},
 			"enc_passphrase": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				Default:     "",
 				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PASSPHRASE", nil),
 				Description: descriptions["enc_passphrase"],
 			},
