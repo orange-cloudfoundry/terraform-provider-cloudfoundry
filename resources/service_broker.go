@@ -120,7 +120,7 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 				continue
 			}
 			haveAllPlanInAllOrg = false
-			visibilities, err := caching.GetPlanVisibilitiesForPlan(client, plan.GUID, false)
+			visibilities, err := caching.GetPlanVisibilitiesForPlan(client, plan.GUID, true)
 			if err != nil {
 				return servicesAccess, err
 			}

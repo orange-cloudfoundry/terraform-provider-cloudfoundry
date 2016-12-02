@@ -56,6 +56,9 @@ func (c CfSpaceResource) getSpaceFromCf(client cf_client.Client, orgGuid, spaceG
 		}
 		return true
 	})
+	if err != nil && strings.Contains(err.Error(), "status code: 404") {
+		return models.Space{}, nil
+	}
 	return space, err
 }
 func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error {

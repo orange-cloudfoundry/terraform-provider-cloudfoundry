@@ -181,7 +181,7 @@ func (c CfSecurityGroupResource) Update(d *schema.ResourceData, meta interface{}
 		}
 	}
 	if d.Get("on_running").(bool) != isOnStaging {
-		err = c.updateBindingStaging(client, d.Id(), d.Get("on_running").(bool))
+		err = c.updateBindingRunning(client, d.Id(), d.Get("on_running").(bool))
 		if err != nil {
 			return err
 		}
