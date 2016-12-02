@@ -147,7 +147,7 @@ func (c CfOrganizationResource) Update(d *schema.ResourceData, meta interface{})
 func (c CfOrganizationResource) Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	isSystemDomain := d.Get("is_system_domain").(bool)
-	orgName := d.Get("name").(bool)
+	orgName := d.Get("name").(string)
 	if isSystemDomain {
 		log.Printf(
 			"[WARN] removing organization %s/%s isn't possible because it's the system_domain organization of your Cloud Foundry",
