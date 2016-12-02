@@ -8,7 +8,7 @@ cd -- "${TMPDIR:?NO TEMP DIRECTORY FOUND!}" || exit
 cd -
 
 which terraform &> /dev/null
-if [[ $? != 0 ]]; then
+if [[ "$?" != "0" ]]; then
     echo "you must have terraform installed"
 fi
 tf_version=$(terraform --version | awk '{print $2}')
