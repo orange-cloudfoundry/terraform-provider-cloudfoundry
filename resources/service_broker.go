@@ -10,7 +10,6 @@ import (
 	"strings"
 	"log"
 	"errors"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
 )
 
 type CfServiceBrokerResource struct {
@@ -120,7 +119,7 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 				continue
 			}
 			haveAllPlanInAllOrg = false
-			visibilities, err := caching.GetPlanVisibilitiesForPlan(client, plan.GUID, true)
+			visibilities, err := c.getPlanVisibilitiesForPlan(client, plan.GUID)
 			if err != nil {
 				return servicesAccess, err
 			}
@@ -146,6 +145,22 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 	}
 
 	return servicesAccess, nil
+}
+func (c CfServiceBrokerResource) getPlanVisibilitiesForPlan(client cf_client.Client, planId string) ([]models.ServicePlanVisibilityFields, error) {
+	return client.ServicePlanVisibilities().Search(map[string]string{"service_plan_guid": planId})
+}
+func (c CfServiceBrokerResource) getPlanVisibilityForPlanAndOrg(client cf_client.Client, planId, orgId string) (models.ServicePlanVisibilityFields, error) {
+	visibilities, err := client.ServicePlanVisibilities().Search(map[string]string{
+		"service_plan_guid": planId,
+		"organization_guid": orgId,
+	})
+	if err != nil {
+		return models.ServicePlanVisibilityFields{}, err
+	}
+	if len(visibilities) == 0 {
+		return models.ServicePlanVisibilityFields{}, nil
+	}
+	return visibilities[0], nil
 }
 func (c CfServiceBrokerResource) splitServiceAccess(servicesAccess []ServiceAccess, numberPlan int) (onlyWithOrg []ServiceAccess, full []ServiceAccess) {
 	onlyWithOrg = make([]ServiceAccess, 0)
@@ -177,7 +192,7 @@ func (c CfServiceBrokerResource) getServicesAccessForOrg(servicesAccess []Servic
 	return servicesAccessInOrg
 }
 func (c CfServiceBrokerResource) isPlanInOrg(client cf_client.Client, planGuid string, orgGuid string) (bool, error) {
-	visibility, err := caching.GetPlanVisibilityForPlanAndOrg(client, planGuid, orgGuid, false)
+	visibility, err := c.getPlanVisibilityForPlanAndOrg(client, planGuid, orgGuid)
 	if err != nil {
 		return false, err
 	}
@@ -507,7 +522,7 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 			return errors.New(fmt.Sprintf("Plan '%s' doesn't exist in service '%s'.",
 				serviceAccess.Service, serviceAccess.Plan))
 		}
-		planVisibility, err := caching.GetPlanVisibilityForPlanAndOrg(client, plan.GUID, serviceAccess.OrgId, true)
+		planVisibility, err := c.getPlanVisibilityForPlanAndOrg(client, plan.GUID, serviceAccess.OrgId)
 		if err != nil {
 			return err
 		}
