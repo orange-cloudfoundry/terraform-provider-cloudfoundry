@@ -6,10 +6,12 @@ install:
 - go get code.cloudfoundry.org/cli
 - go get golang.org/x/crypto/openpgp
 - go get github.com/blang/semver
-- go get github.com/nicksnyder/go-i18n
+# fix for concurrent writing during translation
+- go get -d github.com/nicksnyder/go-i18n
 - cd $GOPATH/src/github.com/nicksnyder/go-i18n
 - git remote add forking https://github.com/emosbaugh/go-i18n.git && git fetch forking
 - git checkout forking/concurrent-bundle
+###
 - cd $GOPATH/src/code.cloudfoundry.org/cli
 - git checkout v6.22.2
 - rm -Rf vendor/github.com/blang/semver
