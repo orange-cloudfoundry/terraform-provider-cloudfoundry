@@ -56,7 +56,7 @@ func (c CfQuotaResource) objectToResource(d *schema.ResourceData, quotaGeneric i
 	if c.isOrgQuota(d) {
 		quota := quotaGeneric.(models.QuotaFields)
 		d.Set("name", quota.Name)
-		d.Set("total_memory", c.transformFromMegabytes(quota.MemoryLimit))
+		d.Set("total_memory", c.transformFromBytes(quota.MemoryLimit))
 		d.Set("instance_memory", c.transformFromBytes(quota.InstanceMemoryLimit))
 		d.Set("routes", quota.RoutesLimit)
 		d.Set("service_instances", quota.ServicesLimit)
@@ -68,7 +68,7 @@ func (c CfQuotaResource) objectToResource(d *schema.ResourceData, quotaGeneric i
 	}
 	quota := quotaGeneric.(models.SpaceQuota)
 	d.Set("name", quota.Name)
-	d.Set("total_memory", c.transformFromMegabytes(quota.MemoryLimit))
+	d.Set("total_memory", c.transformFromBytes(quota.MemoryLimit))
 	d.Set("instance_memory", c.transformFromBytes(quota.InstanceMemoryLimit))
 	d.Set("routes", quota.RoutesLimit)
 	d.Set("service_instances", quota.ServicesLimit)
@@ -247,7 +247,7 @@ func (c CfQuotaResource) Schema() map[string]*schema.Schema {
 		},
 		"total_memory": &schema.Schema{
 			Type:     schema.TypeString,
-			Default: "20240M",
+			Default: "20G",
 			Optional: true,
 		},
 		"instance_memory": &schema.Schema{

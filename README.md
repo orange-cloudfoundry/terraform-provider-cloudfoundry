@@ -141,7 +141,7 @@ resource "cloudfoundry_quota" "quota_for_ahalet" {
 
 - **name**: (**Required**) Name of your quota.
 - **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
-- **total_memory**: *(Optional, default: `20240M`)* Total amount of memory a space can have (e.g. 1024M, 1G, 10G).
+- **total_memory**: *(Optional, default: `20G`)* Total amount of memory a space can have (e.g. 1024M, 1G, 10G).
 - **total_instance_memory**: *(Optional, default: `-1`)* Maximum amount of memory an application instance can have (e.g. 1024M, 1G, 10G). -1 represents an unlimited amount.
 - **routes**: *(Optional, default: `2000`)* Total number of routes that a space can have.
 - **service_instances**: *(Optional, default: `200`)* Total number of service instances which can be created that a space can have.
@@ -265,7 +265,7 @@ provider "cloudfoundry" {
 
 ### Encrypt password
 
-1. Get the public key previously created (`ppublic.key`)
+1. Get the public key previously created (`public.key`)
 2. Import the key with `gpg --import public.key`
 3. generate the encrypted password with commands `echo "mypassword" | gpg --encrypt --armor -r cloudfoudry > encrypted_pass.key`
 4. Retrieve it from your resource, e.g.:
