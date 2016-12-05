@@ -43,6 +43,9 @@ func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map
 	if _, ok := rule["code"]; !ok {
 		unSanitizedRule["code"] = 0
 	}
+	if _, ok := rule["log"]; !ok {
+		unSanitizedRule["log"] = 0
+	}
 	if _, ok := rule["type"]; !ok {
 		unSanitizedRule["type"] = 0
 	}
@@ -65,6 +68,9 @@ func (c CfSecurityGroupResource) sanitizeRule(rule map[string]interface{}) map[s
 
 	for index, content := range rule {
 		if index == "code" && content.(int) == 0 {
+			continue
+		}
+		if index == "log" && content.(bool) == false {
 			continue
 		}
 		if index == "type" && content.(int) == 0 {
@@ -356,7 +362,7 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 					},
 					"log": &schema.Schema{
 						Type:     schema.TypeBool,
-						Default: true,
+						Default: false,
 						Optional: true,
 					},
 				},

@@ -186,7 +186,7 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
   - **ports**: *(Optional, default: `null`)* A single port, multiple comma-separated ports, or a single range of ports that can receive traffic, e.g. `"443"`, `"80,8080,8081"`, `"8080-8081"`. Required when `protocol` is `tcp` or `udp`. 
   - **code**: *(Optional, default: `null`)* ICMP code. Required when `protocol` is `icmp`. 
   - **type**: *(Optional, default: `null`)* ICMP type. Required when `protocol` is `icmp`. 
-  - **log**: *(Optional, default: `true`)* Set to `true` to enable logging. For more information about how to configure system logs to be sent to a syslog drain, see [Using Log Management Services](https://docs.cloudfoundry.org/devguide/services/log-management.html) topic.
+  - **log**: *(Optional, default: `false`)* Set to `true` to enable logging. For more information about how to configure system logs to be sent to a syslog drain, see [Using Log Management Services](https://docs.cloudfoundry.org/devguide/services/log-management.html) topic.
   - **description**: *(Optional, default: `null`)* This is an optional field that contains useful text for operators to manage security group rules. This field is available in Cloud Foundry v238 and later.
 
 ### Buildpacks
