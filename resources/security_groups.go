@@ -44,7 +44,7 @@ func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map
 		unSanitizedRule["code"] = 0
 	}
 	if _, ok := rule["log"]; !ok {
-		unSanitizedRule["log"] = 0
+		unSanitizedRule["log"] = false
 	}
 	if _, ok := rule["type"]; !ok {
 		unSanitizedRule["type"] = 0
