@@ -478,8 +478,7 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 	}
 	if broker.Name != brokerCf.Name ||
 		broker.URL != brokerCf.URL ||
-		broker.Username != brokerCf.Username ||
-		broker.Password != brokerCf.Password {
+		broker.Username != brokerCf.Username {
 		err = client.ServiceBrokers().Update(broker)
 		if err != nil {
 			return err
