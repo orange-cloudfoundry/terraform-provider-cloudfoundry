@@ -20,13 +20,13 @@ func Provider() terraform.ResourceProvider {
 			"api_endpoint": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CF_API", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CF_API", ""),
 				Description: descriptions["api_endpoint"],
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CF_USERNAME", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CF_USERNAME", ""),
 				Description: descriptions["username"],
 			},
 			"password": &schema.Schema{
@@ -38,13 +38,13 @@ func Provider() terraform.ResourceProvider {
 			"enc_private_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PRIVATE_KEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PRIVATE_KEY", ""),
 				Description: descriptions["enc_private_key"],
 			},
 			"enc_passphrase": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PASSPHRASE", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CF_ENC_PASSPHRASE", ""),
 				Description: descriptions["enc_passphrase"],
 			},
 			"user_refresh_token": &schema.Schema{
