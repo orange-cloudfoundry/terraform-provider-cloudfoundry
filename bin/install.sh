@@ -14,7 +14,9 @@ fi
 tf_version=$(terraform --version | awk '{print $2}')
 tf_version=${tf_version:1:3}
 
-echo "Installing ${NAME}..."
+VERSION=$(curl -s https://api.github.com/repos/${OWNER}/${REPO_NAME}/releases/latest | grep tag_name | head -n 1 | cut -d '"' -f 4)
+
+echo "Installing ${NAME}-${VERSION}..."
 if [[ "$OSTYPE" == "linux-gnu" -o "$(uname -s)" == "Linux" ]]; then
     OS="linux"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
@@ -45,8 +47,6 @@ FILENAME="${NAME}_${tf_version}_${OS}_${ARCH}"
 if [[ "$OS" == "windows" ]]; then
     FILENAME="${FILENAME}.exe"
 fi
-
-VERSION=$(curl -s https://api.github.com/repos/${OWNER}/${REPO_NAME}/releases/latest | grep tag_name | head -n 1 | cut -d '"' -f 4)
 
 LINK="https://github.com/${OWNER}/${REPO_NAME}/releases/download/${VERSION}/${FILENAME}"
 if [[ "$OS" == "windows" ]]; then
@@ -86,11 +86,11 @@ EOF
 else
     grep -Fxq "cloudfoundry" ~/.terraformrc &> /dev/null
     if [[ $? != 0 ]]; then
-        echo "${NAME} has been installed."
+        echo "${NAME}-${VERSION} has been installed."
         exit 0
     fi
     awk '/providers {/ { print; print "cloudfoundry = \"provider_path\""; next }1' ~/.terraformrc > /tmp/.terraformrc
     mv /tmp/.terraformrc ~/
 fi
 
-echo "${NAME} has been installed."
+echo "${NAME}-${VERSION} has been installed."
