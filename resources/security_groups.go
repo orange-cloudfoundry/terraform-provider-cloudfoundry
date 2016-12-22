@@ -41,7 +41,7 @@ func (c CfSecurityGroupResource) resourceObject(d *schema.ResourceData) models.S
 func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map[string]interface{} {
 	unSanitizedRule := make(map[string]interface{})
 	if _, ok := rule["code"]; !ok {
-		unSanitizedRule["code"] = 0
+		unSanitizedRule["code"] = -1
 	}
 	if _, ok := rule["log"]; !ok {
 		unSanitizedRule["log"] = false
@@ -67,7 +67,7 @@ func (c CfSecurityGroupResource) sanitizeRule(rule map[string]interface{}) map[s
 	sanitizedRule := make(map[string]interface{})
 
 	for index, content := range rule {
-		if index == "code" && content.(int) == 0 {
+		if index == "code" && content.(int) == -1 {
 			continue
 		}
 		if index == "log" && content.(bool) == false {
@@ -355,6 +355,7 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 					"code": &schema.Schema{
 						Type:     schema.TypeInt,
 						Optional: true,
+						Default: -1,
 					},
 					"type": &schema.Schema{
 						Type:     schema.TypeInt,
