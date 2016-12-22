@@ -1,4 +1,4 @@
-# terraform-provider-cloudfoundry
+# terraform-provider-cloudfoundry  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry)
 
 A terraform provider to manage a Cloud Foundry instance.
 
