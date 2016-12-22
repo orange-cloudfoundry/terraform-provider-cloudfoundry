@@ -86,11 +86,11 @@ EOF
 else
     grep -Fxq "cloudfoundry" ~/.terraformrc &> /dev/null
     if [[ $? != 0 ]]; then
-        echo "${NAME} has been installed."
+        echo "${NAME}-${VERSION} has been installed."
         exit 0
     fi
     awk '/providers {/ { print; print "cloudfoundry = \"provider_path\""; next }1' ~/.terraformrc > /tmp/.terraformrc
     mv /tmp/.terraformrc ~/
 fi
 
-echo "${NAME} has been installed."
+echo "${NAME}-${VERSION} has been installed."
