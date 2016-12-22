@@ -13,5 +13,5 @@ fi
 
 CURRENTDIR=`pwd`
 
-go build -o $CURRENTDIR/out/terraform-provider-cloudfoundry_$1
+CGO_ENABLED=0 go build -o $CURRENTDIR/out/terraform-provider-cloudfoundry_$1
 echo -e "\nGenerating Binary finished."

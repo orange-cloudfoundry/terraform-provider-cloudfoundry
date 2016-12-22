@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 REPO_NAME="terraform-provider-cloudfoundry"
 NAME="terraform-provider-cloudfoundry"
 OS=""
@@ -15,7 +15,7 @@ tf_version=$(terraform --version | awk '{print $2}')
 tf_version=${tf_version:1:3}
 
 echo "Installing ${NAME}..."
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
+if [[ "$OSTYPE" == "linux-gnu" -o "$(uname -s)" == "Linux" ]]; then
     OS="linux"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     OS="darwin"
