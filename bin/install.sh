@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 REPO_NAME="terraform-provider-cloudfoundry"
 NAME="terraform-provider-cloudfoundry"
 OS=""
@@ -17,7 +17,7 @@ tf_version=${tf_version:1:3}
 VERSION=$(curl -s https://api.github.com/repos/${OWNER}/${REPO_NAME}/releases/latest | grep tag_name | head -n 1 | cut -d '"' -f 4)
 
 echo "Installing ${NAME}-${VERSION}..."
-if [[ "$OSTYPE" == "linux-gnu" -o "$(uname -s)" == "Linux" ]]; then
+if [[ "$OSTYPE" == "linux-gnu" || "$(uname -s)" == "Linux" ]]; then
     OS="linux"
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     OS="darwin"
