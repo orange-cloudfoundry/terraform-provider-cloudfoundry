@@ -1,29 +1,14 @@
 # terraform-provider-cloudfoundry  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry)
 
-A terraform provider to manage a Cloud Foundry instance.
+This is a work in progress currently in a proof-of-concept state, meaning the syntax will change soon, and the implementation is being hardened. The [design proposal docoument](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and a refined modeling of the CF-related resources. Feedback and contributions in the google doc are welcomed.
 
-You can easily manage a Cloud Foundry instance with terraform file(s), you can actually manage:
+This POC demonstrates the use-case of managing a Cloud Foundry instance with terraform file(s), with current support for:
 - [Organizations](#organizations)
 - [Spaces](#spaces)
 - [Quotas](#quotas) (Space and Organization ones)
 - [Security groups](#security-groups) (On space, staging or running)
 - [Buildpacks](#buildpacks)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
-
-
-
-## Motivations
-
-A Cloud Foundry administrator would like to have always an expected Cloud Foundry instances. He always want to have the right buildpacks, the right orgs, the right spaces, the right service brokers available on his instance. 
-
-
-Currently, there is no automatic or easy system to manage an entire cloud foundry instance. When a cloud foundry instance is used inside a company this type of system become more and more needed to ensure that everything will work over the time.
-
-
-We choose a terraform provider to be able to manage a cloud foundry instance because it is already used in the community to create a cloud foundry but also because it provides an easy way to interact with different system. 
-
-
-Terraform has also been experienced in this case of use case (e.g.: github provider https://www.terraform.io/docs/providers/github/index.html ). 
 
 ## Installations
 
