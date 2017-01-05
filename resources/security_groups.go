@@ -42,12 +42,16 @@ func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map
 	unSanitizedRule := make(map[string]interface{})
 	if _, ok := rule["code"]; !ok {
 		unSanitizedRule["code"] = -1
+	} else {
+		rule["code"] = c.convertRuleParamFloatToInt(rule["code"])
 	}
 	if _, ok := rule["log"]; !ok {
 		unSanitizedRule["log"] = false
 	}
 	if _, ok := rule["type"]; !ok {
 		unSanitizedRule["type"] = -1
+	} else {
+		rule["type"] = c.convertRuleParamFloatToInt(rule["type"])
 	}
 	if _, ok := rule["ports"]; !ok {
 		unSanitizedRule["ports"] = ""
@@ -62,6 +66,16 @@ func (c CfSecurityGroupResource) unSanitizeRule(rule map[string]interface{}) map
 		unSanitizedRule[index] = content
 	}
 	return unSanitizedRule
+}
+func (c CfSecurityGroupResource) convertRuleParamFloatToInt(param interface{}) int {
+	kindParam := reflect.TypeOf(param).Kind()
+	if kindParam == reflect.Float32 {
+		return int(param.(float32))
+	}
+	if kindParam == reflect.Float64 {
+		return int(param.(float64))
+	}
+	return param.(int)
 }
 func (c CfSecurityGroupResource) sanitizeRule(rule map[string]interface{}) map[string]interface{} {
 	sanitizedRule := make(map[string]interface{})
