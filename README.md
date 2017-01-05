@@ -2,7 +2,7 @@
 
 A terraform provider to manage a Cloud Foundry instance.
 
-This is a work in progress currently in a proof-of-concept status. The [design proposal docoument](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and a refined modeling of the CF-related resources. Feedback and contributions in the google doc are welcome.
+This is a work in progress currently in a proof-of-concept state, meaning the syntax will change soon, and the implementation is being hardened. The [design proposal docoument](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and a refined modeling of the CF-related resources. Feedback and contributions in the google doc are welcomed.
 
 This POC demonstrates the use-case of managing a Cloud Foundry instance with terraform file(s), with current support for:
 - [Organizations](#organizations)
