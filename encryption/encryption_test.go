@@ -86,37 +86,26 @@ s6aRDLpAwg==
 
 	Context("When want to decrypt a message", func() {
 		It("should decrypt it if a private key was given and message in base64", func() {
-			decrypter := Decrypter{
-				PrivateKey: encPrivKey,
-				Passphrase: passphrase,
-			}
+			decrypter := NewPgpDecrypter(encPrivKey, passphrase)
 			decMessage, err := decrypter.Decrypt(encMessageB64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(decMessage).Should(Equal("mypassword"))
 		})
 		It("should decrypt it if a private key was given and message is armored", func() {
-			decrypter := Decrypter{
-				PrivateKey: encPrivKey,
-				Passphrase: passphrase,
-			}
+			decrypter := NewPgpDecrypter(encPrivKey, passphrase)
 			decMessage, err := decrypter.Decrypt(encMessageArmored)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(decMessage).Should(Equal("mypassword"))
 		})
 		It("should send back message without decrypting it if a private key was not given", func() {
-			decrypter := Decrypter{
-				Passphrase: passphrase,
-			}
+			decrypter := NewPgpDecrypter("", passphrase)
 			decMessage, err := decrypter.Decrypt(encMessageB64)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(decMessage).Should(Equal(encMessageB64))
 		})
 		It("should send back message without decrypting it if message is not encrypted", func() {
 			message := "mymessage"
-			decrypter := Decrypter{
-				PrivateKey: encPrivKey,
-				Passphrase: passphrase,
-			}
+			decrypter := NewPgpDecrypter(encPrivKey, passphrase)
 			decMessage, err := decrypter.Decrypt(message)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(decMessage).Should(Equal(message))

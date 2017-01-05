@@ -11,19 +11,29 @@ import (
 	"io"
 )
 
-type Decrypter struct {
+type Decrypter interface {
+	Decrypt(encString string) (string, error)
+}
+
+type PgpDecrypter struct {
 	PrivateKey string
 	Passphrase string
 }
 
-func (d Decrypter) sanitizeString(value string) string {
+func NewPgpDecrypter(privateKey, passphrase string) Decrypter {
+	return &PgpDecrypter{
+		PrivateKey: privateKey,
+		Passphrase: passphrase,
+	}
+}
+func (d PgpDecrypter) sanitizeString(value string) string {
 	value = strings.TrimSpace(value)
 	value = strings.Trim(value, "\n")
 	value = strings.Trim(value, "\r")
 	return value
 }
 
-func (d Decrypter) Decrypt(encString string) (string, error) {
+func (d PgpDecrypter) Decrypt(encString string) (string, error) {
 
 	// init some vars
 	var entity *openpgp.Entity

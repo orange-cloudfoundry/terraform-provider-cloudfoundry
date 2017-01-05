@@ -21,8 +21,8 @@ import (
 )
 
 type Client interface {
-	Organizations() organizations.CloudControllerOrganizationRepository
-	Spaces() spaces.CloudControllerSpaceRepository
+	Organizations() organizations.OrganizationRepository
+	Spaces() spaces.SpaceRepository
 	SecurityGroups() securitygroups.SecurityGroupRepo
 	SecurityGroupsSpaceBinder() spacesbinder.SecurityGroupSpaceBinder
 	SecurityGroupsRunningBinder() secgrouprun.SecurityGroupsRepo
@@ -32,24 +32,24 @@ type Client interface {
 	ServicePlans() api.ServicePlanRepository
 	Services() api.ServiceRepository
 	SpaceQuotas() spacequotas.SpaceQuotaRepository
-	Quotas() quotas.CloudControllerQuotaRepository
+	Quotas() quotas.QuotaRepository
 	Config() Config
-	Buildpack() api.CloudControllerBuildpackRepository
-	BuildpackBits() api.CloudControllerBuildpackBitsRepository
+	Buildpack() api.BuildpackRepository
+	BuildpackBits() api.BuildpackBitsRepository
 	Decrypter() encryption.Decrypter
 }
 type CfClient struct {
 	config                      Config
 	gateways                    CloudFoundryGateways
-	organizations               organizations.CloudControllerOrganizationRepository
-	spaces                      spaces.CloudControllerSpaceRepository
+	organizations               organizations.OrganizationRepository
+	spaces                      spaces.SpaceRepository
 	securityGroups              securitygroups.SecurityGroupRepo
 	serviceBrokers              api.ServiceBrokerRepository
 	servicePlanVisibilities     api.ServicePlanVisibilityRepository
 	spaceQuotas                 spacequotas.SpaceQuotaRepository
-	quotas                      quotas.CloudControllerQuotaRepository
-	buildpack                   api.CloudControllerBuildpackRepository
-	buildpackBits               api.CloudControllerBuildpackBitsRepository
+	quotas                      quotas.QuotaRepository
+	buildpack                   api.BuildpackRepository
+	buildpackBits               api.BuildpackBitsRepository
 	securityGroupsSpaceBinder   spacesbinder.SecurityGroupSpaceBinder
 	securityGroupsRunningBinder secgrouprun.SecurityGroupsRepo
 	securityGroupsStagingBinder secgroupstag.SecurityGroupsRepo
@@ -117,10 +117,7 @@ func (client *CfClient) Authenticate() error {
 	return nil
 }
 func (client *CfClient) LoadDecrypter() {
-	client.decrypter = encryption.Decrypter{
-		PrivateKey: client.config.EncPrivateKey,
-		Passphrase: client.config.Passphrase,
-	}
+	client.decrypter = encryption.NewPgpDecrypter(client.config.EncPrivateKey, client.config.Passphrase)
 }
 func (client *CfClient) LoadRepositories() {
 	gateways := client.gateways
@@ -140,11 +137,11 @@ func (client *CfClient) LoadRepositories() {
 	client.servicePlans = api.NewCloudControllerServicePlanRepository(repository, gateways.CloudControllerGateway)
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
 }
-func (client CfClient) Organizations() organizations.CloudControllerOrganizationRepository {
+func (client CfClient) Organizations() organizations.OrganizationRepository {
 	return client.organizations
 }
 
-func (client CfClient) Spaces() spaces.CloudControllerSpaceRepository {
+func (client CfClient) Spaces() spaces.SpaceRepository {
 	return client.spaces
 }
 func (client CfClient) SecurityGroups() securitygroups.SecurityGroupRepo {
@@ -160,17 +157,17 @@ func (client CfClient) SpaceQuotas() spacequotas.SpaceQuotaRepository {
 	return client.spaceQuotas
 }
 
-func (client CfClient) Quotas() quotas.CloudControllerQuotaRepository {
+func (client CfClient) Quotas() quotas.QuotaRepository {
 	return client.quotas
 }
 
 func (client CfClient) Config() Config {
 	return client.config
 }
-func (client CfClient) Buildpack() api.CloudControllerBuildpackRepository {
+func (client CfClient) Buildpack() api.BuildpackRepository {
 	return client.buildpack
 }
-func (client CfClient) BuildpackBits() api.CloudControllerBuildpackBitsRepository {
+func (client CfClient) BuildpackBits() api.BuildpackBitsRepository {
 	return client.buildpackBits
 }
 func (client CfClient) SecurityGroupsSpaceBinder() spacesbinder.SecurityGroupSpaceBinder {

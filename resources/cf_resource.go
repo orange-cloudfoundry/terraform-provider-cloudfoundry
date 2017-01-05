@@ -59,7 +59,7 @@ func loadCfResource(cfResource CfResource) *schema.Resource {
 		Read:   cfResource.Read,
 		Update: cfResource.Update,
 		Delete: cfResource.Delete,
-		//Exists: cfResource.Exists,
+		Exists: cfResource.Exists,
 		Schema: cfResource.Schema(),
 	}
 }

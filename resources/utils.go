@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// Giving missing security groups from a source which are not in a slice of security groups
 func GetMissingSecGroup(sliceSource, sliceToInspect []models.SecurityGroupFields) []models.SecurityGroupFields {
 	elementsNotFound := make([]models.SecurityGroupFields, 0)
 	for _, elt := range sliceSource {
