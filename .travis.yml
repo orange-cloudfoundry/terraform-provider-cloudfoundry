@@ -3,19 +3,10 @@ go:
 - 1.7
 install:
 - go get github.com/hashicorp/terraform
-- go get code.cloudfoundry.org/cli
-- go get golang.org/x/crypto/openpgp
-- go get github.com/blang/semver
-# fix for concurrent writing during translation
-- go get -d github.com/nicksnyder/go-i18n/...
-###
-- cd $GOPATH/src/code.cloudfoundry.org/cli
-- git checkout v6.22.2
-- rm -Rf vendor/github.com/blang/semver
-- rm -Rf vendor/github.com/nicksnyder/go-i18n
-- rm -Rf vendor/github.com/onsi
+- go get github.com/onsi/ginkgo/ginkgo
+- go get github.com/onsi/gomega
 script:
-- echo ""
+- go test ./... -v
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout v0.7.12
