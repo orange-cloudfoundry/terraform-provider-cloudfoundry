@@ -1,14 +1,14 @@
 package encryption
 
 import (
-	"encoding/base64"
 	"bytes"
-	"io/ioutil"
+	"encoding/base64"
 	"golang.org/x/crypto/openpgp"
-	"strings"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 	"io"
+	"io/ioutil"
+	"strings"
 )
 
 type Decrypter interface {
@@ -67,9 +67,7 @@ func (d PgpDecrypter) Decrypt(encString string) (string, error) {
 		dec = blockPublicKey.Body
 	}
 
-
 	// Decrypt it with the contents of the private key
-
 
 	md, err := openpgp.ReadMessage(dec, openpgp.EntityList([]*openpgp.Entity{entity}), nil, nil)
 	if err != nil {

@@ -36,4 +36,3 @@ func (c *Config) RefreshToken() string {
 func (c *Config) SetAccessToken(token string) {
 	c.UserAccessToken = token
 }
-

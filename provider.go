@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/plugin"
+	"errors"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"errors"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources"
 	"strings"
 )
@@ -84,16 +84,16 @@ func main() {
 }
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := cf_client.Config{
-		ApiEndpoint:        d.Get("api_endpoint").(string),
-		Username:           d.Get("username").(string),
-		Password:           d.Get("password").(string),
-		UserRefreshToken:   parseToken(d.Get("user_refresh_token").(string)),
-		UserAccessToken:    parseToken(d.Get("user_access_token").(string)),
-		Locale:             "en_US",
-		Verbose:            d.Get("verbose").(bool),
-		SkipInsecureSSL:    d.Get("skip_ssl_validation").(bool),
-		EncPrivateKey:      d.Get("enc_private_key").(string),
-		Passphrase:         d.Get("enc_passphrase").(string),
+		ApiEndpoint:      d.Get("api_endpoint").(string),
+		Username:         d.Get("username").(string),
+		Password:         d.Get("password").(string),
+		UserRefreshToken: parseToken(d.Get("user_refresh_token").(string)),
+		UserAccessToken:  parseToken(d.Get("user_access_token").(string)),
+		Locale:           "en_US",
+		Verbose:          d.Get("verbose").(bool),
+		SkipInsecureSSL:  d.Get("skip_ssl_validation").(bool),
+		EncPrivateKey:    d.Get("enc_private_key").(string),
+		Passphrase:       d.Get("enc_passphrase").(string),
 	}
 	if config.UserAccessToken == "" && (config.Username == "" || config.Password == "") {
 		return nil, errors.New("You must provide an 'user_access_token' or an admin 'username' and 'password'")

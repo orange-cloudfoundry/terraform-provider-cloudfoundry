@@ -1,15 +1,15 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"bytes"
+	"code.cloudfoundry.org/cli/cf/models"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"strings"
 	"log"
-	"errors"
+	"strings"
 )
 
 type CfServiceBrokerResource struct {
@@ -38,8 +38,8 @@ func (c CfServiceBrokerResource) serviceAccessObjects(d *schema.ResourceData) []
 func (c CfServiceBrokerResource) serviceAccessObject(serviceAccessMap map[string]interface{}) ServiceAccess {
 	return ServiceAccess{
 		Service: serviceAccessMap["service"].(string),
-		Plan: serviceAccessMap["plan"].(string),
-		OrgId: serviceAccessMap["org_id"].(string),
+		Plan:    serviceAccessMap["plan"].(string),
+		OrgId:   serviceAccessMap["org_id"].(string),
 	}
 }
 func (c CfServiceBrokerResource) getFullServicesAccessDef(client cf_client.Client, serviceBroker models.ServiceBroker, servicesAccess []ServiceAccess) ([]ServiceAccess, error) {
@@ -85,9 +85,9 @@ func (c CfServiceBrokerResource) resourceObject(d *schema.ResourceData, meta int
 		return models.ServiceBroker{}, err
 	}
 	return models.ServiceBroker{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
-		URL: d.Get("url").(string),
+		GUID:     d.Id(),
+		Name:     d.Get("name").(string),
+		URL:      d.Get("url").(string),
 		Username: d.Get("username").(string),
 		Password: password,
 	}, nil
@@ -95,8 +95,8 @@ func (c CfServiceBrokerResource) resourceObject(d *schema.ResourceData, meta int
 func (c CfServiceBrokerResource) transformServicesAccessToMap(serviceAccess ServiceAccess) map[string]interface{} {
 	return map[string]interface{}{
 		"service": serviceAccess.Service,
-		"plan": serviceAccess.Plan,
-		"org_id": serviceAccess.OrgId,
+		"plan":    serviceAccess.Plan,
+		"org_id":  serviceAccess.OrgId,
 	}
 }
 func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_client.Client, serviceBroker models.ServiceBroker) ([]ServiceAccess, error) {
@@ -114,7 +114,7 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 			if isPlanInAllOrg {
 				servicesAccessInAllOrgsTemp = append(servicesAccessInAllOrgsTemp, ServiceAccess{
 					Service: service.Label,
-					Plan: plan.Name,
+					Plan:    plan.Name,
 				})
 				continue
 			}
@@ -126,8 +126,8 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 			for _, visibility := range visibilities {
 				servicesAccessOrgAndPlanTemp = append(servicesAccessOrgAndPlanTemp, ServiceAccess{
 					Service: service.Label,
-					Plan: plan.Name,
-					OrgId: visibility.OrganizationGUID,
+					Plan:    plan.Name,
+					OrgId:   visibility.OrganizationGUID,
 				})
 			}
 
@@ -167,15 +167,15 @@ func (c CfServiceBrokerResource) splitServiceAccess(servicesAccess []ServiceAcce
 	full = make([]ServiceAccess, 0)
 	orgs := make(map[string]bool)
 	for _, serviceAccess := range servicesAccess {
-		if orgs[serviceAccess.OrgId + serviceAccess.Plan] {
+		if orgs[serviceAccess.OrgId+serviceAccess.Plan] {
 			continue
 		}
 		if len(c.getServicesAccessForOrg(servicesAccess, serviceAccess.OrgId)) == numberPlan {
 			onlyWithOrg = append(onlyWithOrg, ServiceAccess{
 				Service: serviceAccess.Service,
-				OrgId: serviceAccess.OrgId,
+				OrgId:   serviceAccess.OrgId,
 			})
-			orgs[serviceAccess.OrgId + serviceAccess.Plan] = true
+			orgs[serviceAccess.OrgId+serviceAccess.Plan] = true
 			continue
 		}
 		full = append(full, serviceAccess)
@@ -286,13 +286,13 @@ func (c CfServiceBrokerResource) updateServiceAccess(client cf_client.Client, se
 	}
 	return nil
 }
-func (c CfServiceBrokerResource) getServicesAccessDefWithOnlyOrg(service models.ServiceOffering, serviceAccess ServiceAccess) ([]ServiceAccess) {
+func (c CfServiceBrokerResource) getServicesAccessDefWithOnlyOrg(service models.ServiceOffering, serviceAccess ServiceAccess) []ServiceAccess {
 	servicesAccess := make([]ServiceAccess, 0)
 	for _, plan := range service.Plans {
 		servicesAccess = append(servicesAccess, ServiceAccess{
 			Service: serviceAccess.Service,
-			OrgId: serviceAccess.OrgId,
-			Plan: plan.Name,
+			OrgId:   serviceAccess.OrgId,
+			Plan:    plan.Name,
 		})
 	}
 	return servicesAccess
@@ -306,8 +306,8 @@ func (c CfServiceBrokerResource) getServicesAccessDefWithOnlyPlan(client cf_clie
 	for _, org := range orgs {
 		servicesAccess = append(servicesAccess, ServiceAccess{
 			Service: serviceAccess.Service,
-			OrgId: org.GUID,
-			Plan: serviceAccess.Plan,
+			OrgId:   org.GUID,
+			Plan:    serviceAccess.Plan,
 		})
 	}
 	return servicesAccess, nil
@@ -317,7 +317,7 @@ func (c CfServiceBrokerResource) getServicesAccessDefWithoutPlanAndOrg(client cf
 	for _, plan := range service.Plans {
 		newServicesAccess, err := c.getServicesAccessDefWithOnlyPlan(client, service, ServiceAccess{
 			Service: serviceAccess.Service,
-			Plan: plan.Name,
+			Plan:    plan.Name,
 		})
 		if err != nil {
 			return servicesAccess, err
@@ -400,7 +400,7 @@ func (c CfServiceBrokerResource) Exists(d *schema.ResourceData, meta interface{}
 	return true, nil
 }
 func (c CfServiceBrokerResource) diffServicesAccess(client cf_client.Client, servicesAccessSrc,
-servicesAccessDest []ServiceAccess) (toDelete []ServiceAccess, toCreate []ServiceAccess) {
+	servicesAccessDest []ServiceAccess) (toDelete []ServiceAccess, toCreate []ServiceAccess) {
 
 	toDelete = make([]ServiceAccess, 0)
 	toCreate = make([]ServiceAccess, 0)
@@ -574,7 +574,7 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Type:     schema.TypeSet,
 			Required: true,
 
-			Elem:     &schema.Resource{
+			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"service": &schema.Schema{
 						Type:     schema.TypeString,

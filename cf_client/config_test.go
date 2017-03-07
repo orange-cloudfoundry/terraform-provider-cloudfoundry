@@ -11,4 +11,3 @@ var _ = Describe("Config", func() {
 	})
 
 })
-

@@ -1,8 +1,8 @@
 package caching
 
 import (
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 )
 
 var buildpacks []models.Buildpack

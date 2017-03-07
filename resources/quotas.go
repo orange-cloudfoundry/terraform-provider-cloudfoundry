@@ -1,14 +1,14 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"code.cloudfoundry.org/cli/cf/formatters"
 	"code.cloudfoundry.org/cli/cf/models"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"strings"
-	"log"
 	"encoding/json"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
+	"log"
+	"strings"
 )
 
 type CfQuotaResource struct {
@@ -79,29 +79,29 @@ func (c CfQuotaResource) objectToResource(d *schema.ResourceData, quotaGeneric i
 }
 func (c CfQuotaResource) resourceOrgQuotaObject(d *schema.ResourceData, totalMemory, instanceMemory int64) models.QuotaFields {
 	return models.QuotaFields{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
-		MemoryLimit: totalMemory,
-		InstanceMemoryLimit: instanceMemory,
-		RoutesLimit: d.Get("routes").(int),
-		ServicesLimit: d.Get("service_instances").(int),
-		AppInstanceLimit: d.Get("app_instances").(int),
+		GUID:                    d.Id(),
+		Name:                    d.Get("name").(string),
+		MemoryLimit:             totalMemory,
+		InstanceMemoryLimit:     instanceMemory,
+		RoutesLimit:             d.Get("routes").(int),
+		ServicesLimit:           d.Get("service_instances").(int),
+		AppInstanceLimit:        d.Get("app_instances").(int),
 		NonBasicServicesAllowed: d.Get("allow_paid_service_plans").(bool),
-		ReservedRoutePorts: json.Number(d.Get("reserved_route_ports").(string)),
+		ReservedRoutePorts:      json.Number(d.Get("reserved_route_ports").(string)),
 	}
 }
 func (c CfQuotaResource) resourceSpaceQuotaObject(d *schema.ResourceData, totalMemory, instanceMemory int64) models.SpaceQuota {
 	return models.SpaceQuota{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
-		MemoryLimit: totalMemory,
-		InstanceMemoryLimit: instanceMemory,
-		RoutesLimit: d.Get("routes").(int),
-		ServicesLimit: d.Get("service_instances").(int),
-		AppInstanceLimit: d.Get("app_instances").(int),
+		GUID:                    d.Id(),
+		Name:                    d.Get("name").(string),
+		MemoryLimit:             totalMemory,
+		InstanceMemoryLimit:     instanceMemory,
+		RoutesLimit:             d.Get("routes").(int),
+		ServicesLimit:           d.Get("service_instances").(int),
+		AppInstanceLimit:        d.Get("app_instances").(int),
 		NonBasicServicesAllowed: d.Get("allow_paid_service_plans").(bool),
 		ReservedRoutePortsLimit: json.Number(d.Get("reserved_route_ports").(string)),
-		OrgGUID: d.Get("org_id").(string),
+		OrgGUID:                 d.Get("org_id").(string),
 	}
 }
 func (c CfQuotaResource) Create(d *schema.ResourceData, meta interface{}) error {
@@ -247,12 +247,12 @@ func (c CfQuotaResource) Schema() map[string]*schema.Schema {
 		},
 		"total_memory": &schema.Schema{
 			Type:     schema.TypeString,
-			Default: "20G",
+			Default:  "20G",
 			Optional: true,
 		},
 		"instance_memory": &schema.Schema{
 			Type:     schema.TypeString,
-			Default: "-1",
+			Default:  "-1",
 			Optional: true,
 		},
 		"routes": &schema.Schema{

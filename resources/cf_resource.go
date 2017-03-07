@@ -12,11 +12,11 @@ type CfResource interface {
 }
 
 const (
-	ORG_RESOURCE = "organization"
-	SPACE_RESOURCE = "space"
-	QUOTA_RESOURCE = "quota"
-	SEC_GROUP_RESOURCE = "sec_group"
-	BUILDPACK_RESOURCE = "buildpack"
+	ORG_RESOURCE            = "organization"
+	SPACE_RESOURCE          = "space"
+	QUOTA_RESOURCE          = "quota"
+	SEC_GROUP_RESOURCE      = "sec_group"
+	BUILDPACK_RESOURCE      = "buildpack"
 	SERVICE_BROKER_RESOURCE = "service_broker"
 )
 
@@ -32,7 +32,7 @@ var resourceToLoad []string = []string{
 func RetrieveResourceMap() map[string]*schema.Resource {
 	resources := make(map[string]*schema.Resource)
 	for _, resourceType := range resourceToLoad {
-		resources["cloudfoundry_" + resourceType] = FactoryCfResource(resourceType)
+		resources["cloudfoundry_"+resourceType] = FactoryCfResource(resourceType)
 	}
 	return resources
 }

@@ -3,9 +3,9 @@ package resources_test
 import (
 	. "github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources"
 
+	"code.cloudfoundry.org/cli/cf/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/cli/cf/models"
 )
 
 var _ = Describe("Utils", func() {
