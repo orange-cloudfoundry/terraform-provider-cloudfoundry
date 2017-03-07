@@ -2,11 +2,11 @@ package cf_client
 
 import (
 	"code.cloudfoundry.org/cli/cf/configuration/coreconfig"
-	"time"
-	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/net"
+	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
 	"io/ioutil"
+	"time"
 )
 
 type CloudFoundryGateways struct {
@@ -28,7 +28,7 @@ func NewUAAGateway(config coreconfig.ReadWriter, logger trace.Printer) net.Gatew
 func NewCloudFoundryGateways(config coreconfig.ReadWriter, logger trace.Printer) CloudFoundryGateways {
 	return CloudFoundryGateways{
 		CloudControllerGateway: NewCloudControllerGateway(config, logger),
-		UAAGateway: NewUAAGateway(config, logger),
-		Config: config,
+		UAAGateway:             NewUAAGateway(config, logger),
+		Config:                 config,
 	}
 }

@@ -1,12 +1,12 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"strings"
-	"log"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
+	"log"
+	"strings"
 )
 
 type CfSpaceResource struct {
@@ -18,16 +18,16 @@ func NewCfSpaceResource() CfResource {
 }
 func (c CfSpaceResource) resourceObject(d *schema.ResourceData) models.Space {
 	spaceField := models.SpaceFields{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
+		GUID:     d.Id(),
+		Name:     d.Get("name").(string),
 		AllowSSH: d.Get("allow_ssh").(bool),
 	}
 	orgField := models.OrganizationFields{
 		GUID: d.Get("org_id").(string),
 	}
 	repo := models.Space{
-		SpaceFields: spaceField,
-		Organization: orgField,
+		SpaceFields:    spaceField,
+		Organization:   orgField,
 		SpaceQuotaGUID: d.Get("quota_id").(string),
 		SecurityGroups: c.extractSecGroups(d),
 	}
@@ -236,8 +236,7 @@ func (c CfSpaceResource) Schema() map[string]*schema.Schema {
 		"allow_ssh": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
-			Default: true,
+			Default:  true,
 		},
 	}
 }
-

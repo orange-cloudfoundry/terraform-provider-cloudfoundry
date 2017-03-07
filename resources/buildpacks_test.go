@@ -3,13 +3,13 @@ package resources_test
 import (
 	. "github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources"
 
+	"code.cloudfoundry.org/cli/cf/models"
+	"errors"
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/terraform"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client/fake_cf_client"
-	"github.com/hashicorp/terraform/helper/schema"
-	"code.cloudfoundry.org/cli/cf/models"
-	"github.com/hashicorp/terraform/terraform"
-	"errors"
 )
 
 var _ = Describe("Buildpacks", func() {
@@ -82,10 +82,10 @@ var _ = Describe("Buildpacks", func() {
 		locked := false
 		BeforeEach(func() {
 			bp = models.Buildpack{
-				GUID: guid,
-				Enabled: &enabled,
-				Locked: &locked,
-				Name: name,
+				GUID:     guid,
+				Enabled:  &enabled,
+				Locked:   &locked,
+				Name:     name,
 				Position: &position,
 			}
 			fakeClient.FakeBuildpack().FindByNameReturns(bp, nil)
@@ -174,10 +174,10 @@ var _ = Describe("Buildpacks", func() {
 			path := "http://test.com/fake_buildpack.zip"
 			BeforeEach(func() {
 				bp = models.Buildpack{
-					GUID: guid,
-					Enabled: &enabled,
-					Locked: &locked,
-					Name: name,
+					GUID:     guid,
+					Enabled:  &enabled,
+					Locked:   &locked,
+					Name:     name,
 					Position: &position,
 					Filename: "other_buildpack.zip",
 				}

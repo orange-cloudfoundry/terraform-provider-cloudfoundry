@@ -2,22 +2,22 @@ package cf_client
 
 import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2"
-	"code.cloudfoundry.org/cli/cf/trace"
-	"code.cloudfoundry.org/cli/cf/i18n"
+	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
-	"code.cloudfoundry.org/cli/cf/net"
-	"io/ioutil"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
-	"code.cloudfoundry.org/cli/cf/api/spaces"
+	"code.cloudfoundry.org/cli/cf/api/quotas"
 	"code.cloudfoundry.org/cli/cf/api/securitygroups"
-	spacesbinder "code.cloudfoundry.org/cli/cf/api/securitygroups/spaces"
 	secgrouprun "code.cloudfoundry.org/cli/cf/api/securitygroups/defaults/running"
 	secgroupstag "code.cloudfoundry.org/cli/cf/api/securitygroups/defaults/staging"
-	"code.cloudfoundry.org/cli/cf/api"
+	spacesbinder "code.cloudfoundry.org/cli/cf/api/securitygroups/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spacequotas"
-	"code.cloudfoundry.org/cli/cf/api/quotas"
+	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/appfiles"
+	"code.cloudfoundry.org/cli/cf/i18n"
+	"code.cloudfoundry.org/cli/cf/net"
+	"code.cloudfoundry.org/cli/cf/trace"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
+	"io/ioutil"
 )
 
 type Client interface {

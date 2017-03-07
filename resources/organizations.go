@@ -1,8 +1,8 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"log"
 	"strings"
@@ -22,8 +22,8 @@ func (c CfOrganizationResource) resourceObject(d *schema.ResourceData) models.Or
 		GUID: d.Get("quota_id").(string),
 	}
 	orgField := models.OrganizationFields{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
+		GUID:            d.Id(),
+		Name:            d.Get("name").(string),
 		QuotaDefinition: quotaDef,
 	}
 	repo := models.Organization{

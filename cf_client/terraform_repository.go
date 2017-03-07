@@ -2,9 +2,9 @@ package cf_client
 
 import (
 	"code.cloudfoundry.org/cli/cf/configuration/coreconfig"
-	"strings"
-	"github.com/blang/semver"
 	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/blang/semver"
+	"strings"
 	"sync"
 )
 
@@ -255,7 +255,7 @@ func (c *TerraformRepository) Locale() (locale string) {
 	})
 	return
 }
-func (c *TerraformRepository) PluginRepos() ([]models.PluginRepo) {
+func (c *TerraformRepository) PluginRepos() []models.PluginRepo {
 	return make([]models.PluginRepo, 0)
 }
 

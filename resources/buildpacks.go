@@ -1,15 +1,15 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"code.cloudfoundry.org/cli/cf/models"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"strings"
-	"log"
-	"path"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
-	"path/filepath"
+	"log"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 type CfBuildpackResource struct {
@@ -33,10 +33,10 @@ func (c CfBuildpackResource) resourceObject(d *schema.ResourceData) (models.Buil
 	}
 
 	return models.Buildpack{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
-		Enabled: &enabled,
-		Locked: &locked,
+		GUID:     d.Id(),
+		Name:     d.Get("name").(string),
+		Enabled:  &enabled,
+		Locked:   &locked,
 		Position: &position,
 		Filename: filename,
 	}, nil
@@ -89,7 +89,7 @@ func (c CfBuildpackResource) generateFilename(buildpackPath string) (string, err
 	if buildpackPath == "" {
 		return "", nil
 	}
-	if (IsWebURL(buildpackPath)) {
+	if IsWebURL(buildpackPath) {
 		return path.Base(buildpackPath), nil
 	}
 	buildpackFileName := filepath.Base(buildpackPath)
@@ -171,10 +171,10 @@ func (c CfBuildpackResource) Update(d *schema.ResourceData, meta interface{}) er
 }
 func (c CfBuildpackResource) updateBuildpack(client cf_client.Client, buildpackFrom, buildpackTo models.Buildpack, buildpackPath string) error {
 	var err error
-	if (buildpackTo.Locked != buildpackFrom.Locked ||
+	if buildpackTo.Locked != buildpackFrom.Locked ||
 		buildpackTo.Enabled != buildpackFrom.Enabled ||
 		buildpackTo.Name != buildpackFrom.Name ||
-		buildpackTo.Position != buildpackFrom.Position) {
+		buildpackTo.Position != buildpackFrom.Position {
 
 		_, err = client.Buildpack().Update(buildpackTo)
 		if err != nil {
@@ -233,12 +233,12 @@ func (c CfBuildpackResource) Schema() map[string]*schema.Schema {
 		"position": &schema.Schema{
 			Type:     schema.TypeInt,
 			Optional: true,
-			Default: 1,
+			Default:  1,
 		},
 		"enabled": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
-			Default: true,
+			Default:  true,
 		},
 		"locked": &schema.Schema{
 			Type:     schema.TypeBool,
@@ -246,4 +246,3 @@ func (c CfBuildpackResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
-

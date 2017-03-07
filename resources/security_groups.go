@@ -1,19 +1,19 @@
 package resources
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
+	"bytes"
 	"code.cloudfoundry.org/cli/cf/models"
+	"errors"
+	"fmt"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
 	"log"
 	"reflect"
-	"fmt"
-	"bytes"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	"strconv"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
-	"errors"
-	"strings"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 var validProtocoles []string = []string{"icmp", "tcp", "udp", "all"}
@@ -33,8 +33,8 @@ func (c CfSecurityGroupResource) resourceObject(d *schema.ResourceData) models.S
 		rules = append(rules, c.sanitizeRule(rule.(map[string]interface{})))
 	}
 	return models.SecurityGroupFields{
-		GUID: d.Id(),
-		Name: d.Get("name").(string),
+		GUID:  d.Id(),
+		Name:  d.Get("name").(string),
 		Rules: rules,
 	}
 }
@@ -232,10 +232,10 @@ func (c CfSecurityGroupResource) updateBindingRunning(client cf_client.Client, g
 }
 func (c CfSecurityGroupResource) isRulesChange(rulesFrom, rulesTo []map[string]interface{}) bool {
 	if rulesFrom == nil && rulesTo == nil {
-		return false;
+		return false
 	}
 	if rulesFrom == nil || rulesTo == nil {
-		return true;
+		return true
 	}
 	if len(rulesFrom) != len(rulesTo) {
 		return true
@@ -315,7 +315,7 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 			Type:     schema.TypeSet,
 			Required: true,
 
-			Elem:     &schema.Resource{
+			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"protocol": &schema.Schema{
 						Type:     schema.TypeString,
@@ -369,16 +369,16 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 					"code": &schema.Schema{
 						Type:     schema.TypeInt,
 						Optional: true,
-						Default: -1,
+						Default:  -1,
 					},
 					"type": &schema.Schema{
 						Type:     schema.TypeInt,
 						Optional: true,
-						Default: -1,
+						Default:  -1,
 					},
 					"log": &schema.Schema{
 						Type:     schema.TypeBool,
-						Default: false,
+						Default:  false,
 						Optional: true,
 					},
 				},
@@ -406,4 +406,3 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
-
