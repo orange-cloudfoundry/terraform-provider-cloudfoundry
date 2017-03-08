@@ -18,7 +18,7 @@ var _ = Describe("Buildpacks", func() {
 	var meta interface{}
 	var resourceData *schema.ResourceData
 	BeforeEach(func() {
-		resource = FactoryCfResource(BUILDPACK_RESOURCE)
+		resource = LoadCfResource(CfBuildpackResource{})
 		fakeClient = fake_cf_client.NewFakeCfClient()
 		meta = fakeClient.GetClient()
 		resourceData = resource.Data(&terraform.InstanceState{})
