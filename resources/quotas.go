@@ -15,9 +15,6 @@ type CfQuotaResource struct {
 	CfResource
 }
 
-func NewCfQuotaResource() CfResource {
-	return &CfQuotaResource{}
-}
 func (c CfQuotaResource) resourceObject(d *schema.ResourceData) (interface{}, error) {
 	totalMemory, err := c.transformToMegabytes(d.Get("total_memory").(string))
 	if err != nil {

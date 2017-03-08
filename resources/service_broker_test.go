@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("ServiceBroker", func() {
-	resource := NewCfServiceBrokerResource()
+	resource := CfServiceBrokerResource{}
 	Context("Read", func() {
 		It("empty", func() {
 			resource.Schema()

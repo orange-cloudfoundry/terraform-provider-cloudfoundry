@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Quotas", func() {
-	resource := NewCfQuotaResource()
+	resource := CfQuotaResource{}
 	Context("Read", func() {
 		It("empty", func() {
 			resource.Schema()

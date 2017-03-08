@@ -22,10 +22,6 @@ type CfSecurityGroupResource struct {
 	CfResource
 }
 
-func NewCfSecurityGroupResource() CfResource {
-	return &CfSecurityGroupResource{}
-}
-
 func (c CfSecurityGroupResource) resourceObject(d *schema.ResourceData) models.SecurityGroupFields {
 	rulesSchema := d.Get("rules").(*schema.Set)
 	rules := make([]map[string]interface{}, 0)
