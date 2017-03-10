@@ -10,8 +10,6 @@ import (
 	"strings"
 )
 
-var descriptions map[string]string
-
 func Provider() terraform.ResourceProvider {
 
 	// The actual provider
@@ -111,9 +109,4 @@ func parseToken(token string) string {
 		return token
 	}
 	return "bearer " + token
-}
-func init() {
-	descriptions = map[string]string{
-		"locale": "Set the locale for translation.",
-	}
 }
