@@ -14,9 +14,6 @@ type CfOrganizationResource struct {
 	CfResource
 }
 
-func NewCfOrganizationResource() CfResource {
-	return &CfOrganizationResource{}
-}
 func (c CfOrganizationResource) resourceObject(d *schema.ResourceData) models.Organization {
 	quotaDef := models.QuotaFields{
 		GUID: d.Get("quota_id").(string),

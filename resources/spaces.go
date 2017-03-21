@@ -13,9 +13,6 @@ type CfSpaceResource struct {
 	CfResource
 }
 
-func NewCfSpaceResource() CfResource {
-	return &CfSpaceResource{}
-}
 func (c CfSpaceResource) resourceObject(d *schema.ResourceData) models.Space {
 	spaceField := models.SpaceFields{
 		GUID:     d.Id(),

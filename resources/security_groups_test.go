@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("SecurityGroups", func() {
-	resource := NewCfSecurityGroupResource()
+	resource := CfSecurityGroupResource{}
 	Context("Read", func() {
 		It("empty", func() {
 			resource.Schema()

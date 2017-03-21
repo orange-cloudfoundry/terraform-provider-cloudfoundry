@@ -11,49 +11,7 @@ type CfResource interface {
 	Schema() map[string]*schema.Schema
 }
 
-const (
-	ORG_RESOURCE            = "organization"
-	SPACE_RESOURCE          = "space"
-	QUOTA_RESOURCE          = "quota"
-	SEC_GROUP_RESOURCE      = "sec_group"
-	BUILDPACK_RESOURCE      = "buildpack"
-	SERVICE_BROKER_RESOURCE = "service_broker"
-)
-
-var resourceToLoad []string = []string{
-	ORG_RESOURCE,
-	SPACE_RESOURCE,
-	QUOTA_RESOURCE,
-	SEC_GROUP_RESOURCE,
-	BUILDPACK_RESOURCE,
-	SERVICE_BROKER_RESOURCE,
-}
-
-func RetrieveResourceMap() map[string]*schema.Resource {
-	resources := make(map[string]*schema.Resource)
-	for _, resourceType := range resourceToLoad {
-		resources["cloudfoundry_"+resourceType] = FactoryCfResource(resourceType)
-	}
-	return resources
-}
-func FactoryCfResource(resourceType string) *schema.Resource {
-	switch resourceType {
-	case ORG_RESOURCE:
-		return loadCfResource(NewCfOrganizationResource())
-	case SPACE_RESOURCE:
-		return loadCfResource(NewCfSpaceResource())
-	case QUOTA_RESOURCE:
-		return loadCfResource(NewCfQuotaResource())
-	case SEC_GROUP_RESOURCE:
-		return loadCfResource(NewCfSecurityGroupResource())
-	case BUILDPACK_RESOURCE:
-		return loadCfResource(NewCfBuildpackResource())
-	case SERVICE_BROKER_RESOURCE:
-		return loadCfResource(NewCfServiceBrokerResource())
-	}
-	return nil
-}
-func loadCfResource(cfResource CfResource) *schema.Resource {
+func LoadCfResource(cfResource CfResource) *schema.Resource {
 	return &schema.Resource{
 		Create: cfResource.Create,
 		Read:   cfResource.Read,

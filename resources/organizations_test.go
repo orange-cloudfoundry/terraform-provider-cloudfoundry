@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Organizations", func() {
-	resource := NewCfOrganizationResource()
+	resource := CfOrganizationResource{}
 	Context("Read", func() {
 		It("empty", func() {
 			resource.Schema()

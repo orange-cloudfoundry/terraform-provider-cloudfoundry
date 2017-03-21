@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Spaces", func() {
-	resource := NewCfSpaceResource()
+	resource := CfSpaceResource{}
 	Context("Read", func() {
 		It("empty", func() {
 			resource.Schema()

@@ -71,7 +71,14 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		ResourcesMap: resources.RetrieveResourceMap(),
+		ResourcesMap: map[string]*schema.Resource{
+			"cloudfoundry_organization":   resources.LoadCfResource(resources.CfOrganizationResource{}),
+			"cloudfoundry_space":          resources.LoadCfResource(resources.CfSpaceResource{}),
+			"cloudfoundry_quota":          resources.LoadCfResource(resources.CfQuotaResource{}),
+			"cloudfoundry_sec_group":      resources.LoadCfResource(resources.CfSecurityGroupResource{}),
+			"cloudfoundry_buildpack":      resources.LoadCfResource(resources.CfBuildpackResource{}),
+			"cloudfoundry_service_broker": resources.LoadCfResource(resources.CfServiceBrokerResource{}),
+		},
 
 		ConfigureFunc: providerConfigure,
 	}

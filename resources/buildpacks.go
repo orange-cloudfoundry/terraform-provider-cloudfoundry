@@ -16,9 +16,6 @@ type CfBuildpackResource struct {
 	CfResource
 }
 
-func NewCfBuildpackResource() CfResource {
-	return &CfBuildpackResource{}
-}
 func (c CfBuildpackResource) resourceObject(d *schema.ResourceData) (models.Buildpack, error) {
 	var err error
 	position := d.Get("position").(int)

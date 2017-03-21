@@ -21,9 +21,6 @@ type ServiceAccess struct {
 	OrgId   string
 }
 
-func NewCfServiceBrokerResource() CfResource {
-	return &CfServiceBrokerResource{}
-}
 func (c CfServiceBrokerResource) serviceAccessObjects(d *schema.ResourceData) []ServiceAccess {
 	serviceAccessShema := d.Get("service_access").(*schema.Set)
 	serviceAccesses := make([]ServiceAccess, 0)
