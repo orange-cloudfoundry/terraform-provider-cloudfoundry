@@ -223,6 +223,7 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
   - **service**: (**Required**) Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
   - **plan**: *(Optional, default: `null`)* Plan from your service broker catalog attached to this service to activate. **Note**: if no `org_id` is given it will enable this plan on all orgs.
   - **org_id**: *(Optional, default: `null`)* Org id created from resource [cloudfoundry_organization](#organizations) to activate this service. **Note**: if no `plan` is given it will all plans on this org.
+  - **disable**: *(Optional, default: `false`)* Disable service access rather than enabling.
   
 **BUG FOUND**: if you set both `plan` and `org_id` in your `service_access` Cloud Foundry will enable all plans on this org. It's maybe only on the version of Cloud Foundry I am. Feedbacks are needed on other versions.
 

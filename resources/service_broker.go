@@ -2,14 +2,15 @@ package resources
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/cli/cf/models"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
+
+	"code.cloudfoundry.org/cli/cf/models"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"log"
-	"strings"
 )
 
 type CfServiceBrokerResource struct {
@@ -19,6 +20,7 @@ type ServiceAccess struct {
 	Service string
 	Plan    string
 	OrgId   string
+	Disable bool
 }
 
 func (c CfServiceBrokerResource) serviceAccessObjects(d *schema.ResourceData) []ServiceAccess {
@@ -37,6 +39,7 @@ func (c CfServiceBrokerResource) serviceAccessObject(serviceAccessMap map[string
 		Service: serviceAccessMap["service"].(string),
 		Plan:    serviceAccessMap["plan"].(string),
 		OrgId:   serviceAccessMap["org_id"].(string),
+		Disable: serviceAccessMap["disable"].(bool),
 	}
 }
 func (c CfServiceBrokerResource) getFullServicesAccessDef(client cf_client.Client, serviceBroker models.ServiceBroker, servicesAccess []ServiceAccess) ([]ServiceAccess, error) {
@@ -290,6 +293,7 @@ func (c CfServiceBrokerResource) getServicesAccessDefWithOnlyOrg(service models.
 			Service: serviceAccess.Service,
 			OrgId:   serviceAccess.OrgId,
 			Plan:    plan.Name,
+			Disable: serviceAccess.Disable,
 		})
 	}
 	return servicesAccess
@@ -305,6 +309,7 @@ func (c CfServiceBrokerResource) getServicesAccessDefWithOnlyPlan(client cf_clie
 			Service: serviceAccess.Service,
 			OrgId:   org.GUID,
 			Plan:    serviceAccess.Plan,
+			Disable: serviceAccess.Disable,
 		})
 	}
 	return servicesAccess, nil
@@ -402,27 +407,34 @@ func (c CfServiceBrokerResource) diffServicesAccess(client cf_client.Client, ser
 	toDelete = make([]ServiceAccess, 0)
 	toCreate = make([]ServiceAccess, 0)
 
+	servicesAccessMapSrc := c.makeServicesAccessMap(servicesAccessSrc)
+	servicesAccessMapDest := c.makeServicesAccessMap(servicesAccessDest)
+
 	for _, serviceAccessSrc := range servicesAccessSrc {
-		if !c.containsServiceAccess(servicesAccessDest, serviceAccessSrc) {
+		exists := c.containsServiceAccess(servicesAccessMapDest, serviceAccessSrc)
+		if (!exists && !serviceAccessSrc.Disable) ||
+			(exists && serviceAccessSrc.Disable) {
 			toDelete = append(toDelete, serviceAccessSrc)
 		}
 	}
 	for _, serviceAccessDest := range servicesAccessDest {
-		if !c.containsServiceAccess(servicesAccessSrc, serviceAccessDest) {
+		if !c.containsServiceAccess(servicesAccessMapSrc, serviceAccessDest) {
 			toCreate = append(toCreate, serviceAccessDest)
 		}
 	}
 	return
 }
-func (c CfServiceBrokerResource) containsServiceAccess(servicesAccess []ServiceAccess, serviceAccessToFind ServiceAccess) bool {
+func (c CfServiceBrokerResource) makeServicesAccessMap(servicesAccess []ServiceAccess) map[ServiceAccess]bool {
+	serviceAccessMap := make(map[ServiceAccess]bool, len(servicesAccess))
 	for _, serviceAccess := range servicesAccess {
-		if serviceAccess.OrgId == serviceAccessToFind.OrgId &&
-			serviceAccess.Plan == serviceAccessToFind.Plan &&
-			serviceAccess.Service == serviceAccessToFind.Service {
-			return true
-		}
+		serviceAccess.Disable = false
+		serviceAccessMap[serviceAccess] = true
 	}
-	return false
+	return serviceAccessMap
+}
+func (c CfServiceBrokerResource) containsServiceAccess(servicesAccess map[ServiceAccess]bool, serviceAccessToFind ServiceAccess) bool {
+	_, ok := servicesAccess[serviceAccessToFind]
+	return ok
 }
 func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
