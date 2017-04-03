@@ -16,6 +16,12 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 
 ### Automatic
 
+To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
+
+```bash
+$ export PROVIDER_CLOUDFOUNDRY_VERSION=v0.5.6"
+```
+
 #### via curl
 
 ```bash
