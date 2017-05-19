@@ -14,14 +14,14 @@ script:
 - go test ./... -v
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
-- git checkout v0.7.12
+- git checkout v0.8.1
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
 - "ls -lah"
-- bin/build-all.sh 0.7
-- cd $GOPATH/src/github.com/hashicorp/terraform
-- git checkout master
-- cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
 - bin/build-all.sh 0.8
+- cd $GOPATH/src/github.com/hashicorp/terraform
+- git checkout v0.9.5
+- cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
+- bin/build-all.sh 0.9
 deploy:
   provider: releases
   api_key:

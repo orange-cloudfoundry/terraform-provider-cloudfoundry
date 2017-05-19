@@ -68,7 +68,7 @@ func (c CfServiceBrokerResource) getFullServiceAccessDef(client cf_client.Client
 		servicesAccess, err = c.getServicesAccessDefWithOnlyPlan(client, service, serviceAccess)
 	}
 	if serviceAccess.OrgId == "" && serviceAccess.Plan == "" {
-		servicesAccess, err = c.getServicesAccessDefWithoutPlanAndOrg(client, service, serviceAccess)
+		return servicesAccess, nil
 	}
 	if err != nil {
 		return make([]ServiceAccess, 0), err
@@ -270,7 +270,7 @@ func (c CfServiceBrokerResource) updateServiceAccess(client cf_client.Client, se
 		servicesAccess, err = c.getServicesAccessDefWithOnlyPlan(client, service, serviceAccess)
 	}
 	if serviceAccess.OrgId == "" && serviceAccess.Plan == "" {
-		servicesAccess, err = c.getServicesAccessDefWithoutPlanAndOrg(client, service, serviceAccess)
+		return c.updateToVisibilityServicePlan(client, service, true)
 	}
 	if err != nil {
 		return err
@@ -322,6 +322,34 @@ func (c CfServiceBrokerResource) getServicesAccessDefWithoutPlanAndOrg(client cf
 		servicesAccess = append(servicesAccess, newServicesAccess...)
 	}
 	return servicesAccess, nil
+}
+func (c CfServiceBrokerResource) updateToVisibilityServicePlan(client cf_client.Client, service models.ServiceOffering, public bool) error {
+	for _, plan := range service.Plans {
+		err := client.ServicePlans().Update(plan, service.GUID, public)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (c CfServiceBrokerResource) updateServicesAccessToPublicServicePlan(client cf_client.Client, serviceBroker models.ServiceBroker, servicesAccess []ServiceAccess) error {
+	var err error
+	for _, serviceAccess := range servicesAccess {
+		service := c.getService(serviceBroker, serviceAccess.Service)
+		if service.GUID == "" {
+			return errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
+				serviceAccess.Service, serviceBroker.Name))
+		}
+		if serviceAccess.Plan != "" || serviceAccess.OrgId != "" {
+			err = c.updateToVisibilityServicePlan(client, service, false)
+		} else {
+			err = c.updateToVisibilityServicePlan(client, service, true)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 func (c CfServiceBrokerResource) updateServiceAccessWithPlanAndOrg(client cf_client.Client, service models.ServiceOffering, serviceAccess ServiceAccess) error {
 	plan := c.getServicePlan(service, serviceAccess.Plan)
@@ -481,7 +509,12 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 			return err
 		}
 	}
-	servicesAccessDest, err := c.getFullServicesAccessDef(client, brokerCf, c.serviceAccessObjects(d))
+	servicesAccess := c.serviceAccessObjects(d)
+	err = c.updateServicesAccessToPublicServicePlan(client, brokerCf, servicesAccess)
+	if err != nil {
+		return err
+	}
+	servicesAccessDest, err := c.getFullServicesAccessDef(client, brokerCf, servicesAccess)
 	if err != nil {
 		return err
 	}

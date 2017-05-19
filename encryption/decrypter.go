@@ -49,9 +49,15 @@ func (d PgpDecrypter) Decrypt(encString string) (string, error) {
 	// Get the passphrase and read the private key.
 	// Have not touched the encrypted string yet
 	passphraseByte := []byte(d.Passphrase)
-	entity.PrivateKey.Decrypt(passphraseByte)
+	err = entity.PrivateKey.Decrypt(passphraseByte)
+	if err != nil {
+		return "", err
+	}
 	for _, subkey := range entity.Subkeys {
-		subkey.PrivateKey.Decrypt(passphraseByte)
+		err = subkey.PrivateKey.Decrypt(passphraseByte)
+		if err != nil {
+			return "", err
+		}
 	}
 	// Decode the base64 string
 	var dec io.Reader
@@ -73,11 +79,11 @@ func (d PgpDecrypter) Decrypt(encString string) (string, error) {
 	if err != nil {
 		return encString, nil
 	}
-	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
+	b, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		return "", err
 	}
-	decStr := d.sanitizeString(string(bytes))
+	decStr := d.sanitizeString(string(b))
 
 	return decStr, nil
 }
