@@ -419,6 +419,13 @@
 			"revisionTime": "2016-12-15T06:10:22Z"
 		},
 		{
+			"checksumSHA1": "WQ9XoTQbcKnmtubEjZY5DmHV2RE=",
+			"origin": "github.com/hashicorp/terraform/vendor/github.com/aws/aws-sdk-go/aws/endpoints",
+			"path": "github.com/aws/aws-sdk-go/aws/endpoints",
+			"revision": "a59ee0b30e1350d18e44a3a2a405124302751f93",
+			"revisionTime": "2017-05-11T09:22:11Z"
+		},
+		{
 			"checksumSHA1": "yVSL6yhjj0Pozx4NVrWA3aguENg=",
 			"origin": "github.com/hashicorp/terraform/vendor/github.com/aws/aws-sdk-go/aws/request",
 			"path": "github.com/aws/aws-sdk-go/aws/request",
@@ -897,6 +904,13 @@
 			"revisionTime": "2016-12-15T06:10:22Z"
 		},
 		{
+			"checksumSHA1": "xyoJKalfQwTUN1qzZGQKWYAwl0A=",
+			"origin": "github.com/hashicorp/terraform/vendor/github.com/mitchellh/hashstructure",
+			"path": "github.com/mitchellh/hashstructure",
+			"revision": "a59ee0b30e1350d18e44a3a2a405124302751f93",
+			"revisionTime": "2017-05-11T09:22:11Z"
+		},
+		{
 			"checksumSHA1": "4Js6Jlu93Wa0o6Kjt393L9Z7diE=",
 			"origin": "github.com/hashicorp/terraform/vendor/github.com/mitchellh/mapstructure",
 			"path": "github.com/mitchellh/mapstructure",
@@ -1121,6 +1135,12 @@
 			"path": "github.com/tedsuo/rata",
 			"revision": "16e82481be13a185294c430f76fc503925ae4624",
 			"revisionTime": "2017-01-05T09:13:24Z"
+		},
+		{
+			"checksumSHA1": "7exdvWeHLteN5zKj2VXWIeE7ZuU=",
+			"path": "github.com/viant/toolbox",
+			"revision": "b8a47201133bf56a9ac8ad0e514e834adc0b3ab3",
+			"revisionTime": "2017-04-04T16:50:03Z"
 		},
 		{
 			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",

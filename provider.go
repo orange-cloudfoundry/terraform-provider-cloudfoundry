@@ -78,6 +78,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_sec_group":      resources.LoadCfResource(resources.CfSecurityGroupResource{}),
 			"cloudfoundry_buildpack":      resources.LoadCfResource(resources.CfBuildpackResource{}),
 			"cloudfoundry_service_broker": resources.LoadCfResource(resources.CfServiceBrokerResource{}),
+			"cloudfoundry_domain":         resources.LoadCfResource(resources.CfDomainResource{}),
 		},
 
 		ConfigureFunc: providerConfigure,

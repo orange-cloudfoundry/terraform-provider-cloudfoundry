@@ -104,6 +104,10 @@ func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_clie
 		servicesAccessOrgAndPlanTemp := make([]ServiceAccess, 0)
 		haveAllPlanInAllOrg := true
 		for _, plan := range service.Plans {
+			if plan.Public {
+				haveAllPlanInAllOrg = true
+				break
+			}
 			isPlanInAllOrg, err := c.isPlanInAllOrgs(client, plan.GUID)
 			if err != nil {
 				return servicesAccess, err

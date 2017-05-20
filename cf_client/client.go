@@ -12,6 +12,7 @@ import (
 	spacesbinder "code.cloudfoundry.org/cli/cf/api/securitygroups/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spacequotas"
 	"code.cloudfoundry.org/cli/cf/api/spaces"
+	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/net"
@@ -37,6 +38,8 @@ type Client interface {
 	Buildpack() api.BuildpackRepository
 	BuildpackBits() api.BuildpackBitsRepository
 	Decrypter() encryption.Decrypter
+	Domain() api.DomainRepository
+	RoutingAPI() api.RoutingAPIRepository
 }
 type CfClient struct {
 	config                      Config
@@ -56,6 +59,8 @@ type CfClient struct {
 	servicePlans                api.ServicePlanRepository
 	decrypter                   encryption.Decrypter
 	services                    api.ServiceRepository
+	domain                      api.DomainRepository
+	routingApi                  api.RoutingAPIRepository
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -136,6 +141,8 @@ func (client *CfClient) LoadRepositories() {
 	client.securityGroupsStagingBinder = secgroupstag.NewSecurityGroupsRepo(repository, gateways.CloudControllerGateway)
 	client.servicePlans = api.NewCloudControllerServicePlanRepository(repository, gateways.CloudControllerGateway)
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
+	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway, apistrat.NewEndpointStrategy("2.80.0"))
+	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Organizations() organizations.OrganizationRepository {
 	return client.organizations
@@ -187,4 +194,10 @@ func (client CfClient) Services() api.ServiceRepository {
 }
 func (client CfClient) Decrypter() encryption.Decrypter {
 	return client.decrypter
+}
+func (client CfClient) Domain() api.DomainRepository {
+	return client.domain
+}
+func (client CfClient) RoutingAPI() api.RoutingAPIRepository {
+	return client.routingApi
 }
