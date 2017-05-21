@@ -2,14 +2,13 @@ package resources
 
 import (
 	"code.cloudfoundry.org/cli/cf/api/resources"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/viant/toolbox"
 	"log"
-	"strings"
 )
 
 type CfServiceResource struct {
@@ -83,10 +82,11 @@ func (c CfServiceResource) Create(d *schema.ResourceData, meta interface{}) erro
 		}
 		c.Exists(d, meta)
 	}
-	svcCf, err := c.getServiceFromCf(client, d.Id())
+	svcCf, err := client.Finder().GetServiceFromCf(d.Id())
 	if err != nil {
 		return err
 	}
+	svc.GUID = d.Id()
 	d.Set("plan_id", svcCf.ServicePlan.GUID)
 	if !isUserProvided && (svcCf.ServicePlan.GUID != planGuid || c.isTagsDiff(svcCf.Tags, svc.Tags)) {
 		err = client.Services().UpdateServiceInstance(
@@ -126,7 +126,7 @@ func (c CfServiceResource) Read(d *schema.ResourceData, meta interface{}) error 
 		GUID: d.Get("space_id").(string),
 	})
 	svc := c.resourceObject(d)
-	svcCf, err := c.getServiceFromCf(client, d.Id())
+	svcCf, err := client.Finder().GetServiceFromCf(d.Id())
 	if err != nil {
 		return err
 	}
@@ -153,23 +153,10 @@ func (c CfServiceResource) Read(d *schema.ResourceData, meta interface{}) error 
 	return nil
 
 }
-func (c CfServiceResource) getServiceFromCf(client cf_client.Client, svcGuid string) (models.ServiceInstance, error) {
-	res := resources.ServiceInstanceResource{}
-	err := client.Gateways().CloudControllerGateway.GetResource(
-		fmt.Sprintf("%s/v2/service_instances/%s?inline-relations-depth=1", client.Config().ApiEndpoint, svcGuid),
-		&res)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return models.ServiceInstance{}, nil
-		}
-		return models.ServiceInstance{}, err
-	}
-	return res.ToModel(), nil
-}
 func (c CfServiceResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	if d.Id() != "" {
-		d, err := c.getServiceFromCf(client, d.Id())
+		d, err := client.Finder().GetServiceFromCf(d.Id())
 		if err != nil {
 			return false, err
 		}
@@ -181,7 +168,7 @@ func (c CfServiceResource) Exists(d *schema.ResourceData, meta interface{}) (boo
 	instance := c.resourceObject(d)
 	instanceCf, err := client.Services().FindInstanceByName(instance.Name)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err
@@ -196,7 +183,7 @@ func (c CfServiceResource) Update(d *schema.ResourceData, meta interface{}) erro
 		GUID: d.Get("space_id").(string),
 	})
 	svc := c.resourceObject(d)
-	svcCf, err := c.getServiceFromCf(client, d.Id())
+	svcCf, err := client.Finder().GetServiceFromCf(d.Id())
 	if err != nil {
 		return err
 	}

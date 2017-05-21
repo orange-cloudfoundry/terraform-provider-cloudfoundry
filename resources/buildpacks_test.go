@@ -3,6 +3,7 @@ package resources_test
 import (
 	. "github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources"
 
+	cferrors "code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"errors"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -37,7 +38,7 @@ var _ = Describe("Buildpacks", func() {
 			Expect(resourceData.Id()).To(BeEquivalentTo("1"))
 		})
 		It("should return false and no id is reaffected if the buildpack is not found", func() {
-			fakeClient.FakeBuildpack().FindByNameReturns(models.Buildpack{}, errors.New("404"))
+			fakeClient.FakeBuildpack().FindByNameReturns(models.Buildpack{}, cferrors.NewModelNotFoundError("", ""))
 			resourceData.Set("name", "aBuildpack")
 
 			found, err := resource.Exists(resourceData, meta)
@@ -89,6 +90,7 @@ var _ = Describe("Buildpacks", func() {
 				Position: &position,
 			}
 			fakeClient.FakeBuildpack().FindByNameReturns(bp, nil)
+			fakeClient.FakeFinder().GetBuildpackFromCfReturns(bp, nil)
 			resourceData.Set("name", name)
 			resourceData.Set("position", position)
 			resourceData.Set("path", "")
@@ -98,7 +100,7 @@ var _ = Describe("Buildpacks", func() {
 		Context("when buildpack already exists in Cloud Foundry", func() {
 
 			Context("and buildpack don't need to be updated", func() {
-				XIt("should only set the id for the resource", func() {
+				It("should only set the id for the resource", func() {
 					err := resource.Create(resourceData, meta)
 					Expect(err).ToNot(HaveOccurred())
 
@@ -110,7 +112,7 @@ var _ = Describe("Buildpacks", func() {
 				})
 			})
 			Context("and buildpack need to be updated", func() {
-				XIt("should only update which is not a buildpack zip file if it didn't change", func() {
+				It("should only update which is not a buildpack zip file if it didn't change", func() {
 					resourceData.Set("locked", !locked)
 					resourceData.Set("enabled", !enabled)
 					err := resource.Create(resourceData, meta)
@@ -121,7 +123,7 @@ var _ = Describe("Buildpacks", func() {
 					Expect(fakeClient.FakeBuildpackBits().CreateBuildpackZipFileCallCount()).Should(Equal(0))
 					Expect(fakeClient.FakeBuildpackBits().UploadBuildpackCallCount()).Should(Equal(0))
 				})
-				XIt("should also update buildpack zip file if it change", func() {
+				It("should also update buildpack zip file if it change", func() {
 					fakeClient.FakeBuildpack().FindByNameReturns(bp, nil)
 					resourceData.Set("path", "http://test.com/fake_buildpack.zip")
 					resourceData.Set("locked", !locked)
@@ -155,11 +157,12 @@ var _ = Describe("Buildpacks", func() {
 		name := "aBuildpack"
 		guid := "1"
 		BeforeEach(func() {
+			fakeClient.FakeFinder().GetBuildpackFromCfReturns(models.Buildpack{}, nil)
 			resourceData.Set("name", name)
 			resourceData.SetId(guid)
 		})
 		Context("When the buildpack doesn't exists anymore in Cloud Foundry", func() {
-			XIt("should remove the id to remove reference inside terraform", func() {
+			It("should remove the id to remove reference inside terraform", func() {
 				err := resource.Read(resourceData, meta)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -181,17 +184,15 @@ var _ = Describe("Buildpacks", func() {
 					Position: &position,
 					Filename: "other_buildpack.zip",
 				}
-				fakeClient.FakeBuildpack().ListBuildpacksStub = func(cb func(models.Buildpack) bool) error {
-					cb(bp)
-					return nil
-				}
+
+				fakeClient.FakeFinder().GetBuildpackFromCfReturns(bp, nil)
 				resourceData.Set("name", name)
 				resourceData.Set("position", position)
 				resourceData.Set("locked", !locked)
 				resourceData.Set("enabled", !enabled)
 				resourceData.Set("path", path)
 			})
-			XIt("should set resource data with right values if not system managed buildpack", func() {
+			It("should set resource data with right values if not system managed buildpack", func() {
 				err := resource.Read(resourceData, meta)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -199,7 +200,7 @@ var _ = Describe("Buildpacks", func() {
 				Expect(resourceData.Get("enabled").(bool)).To(BeTrue())
 				Expect(resourceData.Get("path").(string)).To(Equal("other_buildpack.zip"))
 			})
-			XIt("should not set resource data except name if buildpack is a system managed buildpack", func() {
+			It("should not set resource data except name if buildpack is a system managed buildpack", func() {
 				resourceData.Set("position", 1)
 				resourceData.Set("path", "")
 				resourceData.Set("locked", false)
@@ -210,6 +211,7 @@ var _ = Describe("Buildpacks", func() {
 				bp.Enabled = &newEnabledValue
 				bp.Locked = &newLockedValue
 				bp.Name = newName
+				fakeClient.FakeFinder().GetBuildpackFromCfReturns(bp, nil)
 
 				err := resource.Read(resourceData, meta)
 				Expect(err).ToNot(HaveOccurred())

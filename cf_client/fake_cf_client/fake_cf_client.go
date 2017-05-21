@@ -48,6 +48,7 @@ type FakeCfClient struct {
 	route                       *apifakes.FakeRouteRepository
 	routeServiceBinding         *apifakes.FakeRouteServiceBindingRepository
 	userProvidedService         *apifakes.FakeUserProvidedServiceInstanceRepository
+	finder                      *FakeFinderRepository
 }
 
 func NewFakeCfClient() *FakeCfClient {
@@ -81,6 +82,7 @@ func (c *FakeCfClient) Init() {
 	c.route = new(apifakes.FakeRouteRepository)
 	c.routeServiceBinding = new(apifakes.FakeRouteServiceBindingRepository)
 	c.userProvidedService = new(apifakes.FakeUserProvidedServiceInstanceRepository)
+	c.finder = new(FakeFinderRepository)
 	c.decrypter = fake_encryption.NewFakeDecrypter()
 }
 func (client FakeCfClient) Organizations() organizations.OrganizationRepository {
@@ -158,6 +160,9 @@ func (client FakeCfClient) RouteServiceBinding() api.RouteServiceBindingReposito
 func (client FakeCfClient) UserProvidedService() api.UserProvidedServiceInstanceRepository {
 	return client.userProvidedService
 }
+func (client FakeCfClient) Finder() cf_client.FinderRepository {
+	return client.finder
+}
 
 // get Fake call -------
 
@@ -220,4 +225,7 @@ func (client FakeCfClient) FakeRouteServiceBinding() *apifakes.FakeRouteServiceB
 }
 func (client FakeCfClient) FakeUserProvidedService() *apifakes.FakeUserProvidedServiceInstanceRepository {
 	return client.userProvidedService
+}
+func (client FakeCfClient) FakeFinder() *FakeFinderRepository {
+	return client.finder
 }

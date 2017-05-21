@@ -1,15 +1,13 @@
 package resources
 
 import (
-	"code.cloudfoundry.org/cli/cf/api/resources"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/formatters"
 	"code.cloudfoundry.org/cli/cf/models"
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"log"
-	"strings"
 )
 
 type CfQuotaResource struct {
@@ -132,41 +130,12 @@ func (c CfQuotaResource) Create(d *schema.ResourceData, meta interface{}) error 
 func (c CfQuotaResource) isOrgQuota(d *schema.ResourceData) bool {
 	return d.Get("org_id").(string) == ""
 }
-func (c CfQuotaResource) getQuotaFromCf(client cf_client.Client, d *schema.ResourceData) (interface{}, error) {
-	var err error
-	quotaGuid := d.Id()
 
-	if c.isOrgQuota(d) {
-		res := resources.QuotaResource{}
-		err = client.Gateways().CloudControllerGateway.GetResource(
-			fmt.Sprintf("%s/v2/quota_definitions/%s?inline-relations-depth=1", client.Config().ApiEndpoint, quotaGuid),
-			&res)
-		if err != nil {
-			if strings.Contains(err.Error(), "404") {
-				return models.QuotaFields{}, nil
-			}
-			return models.QuotaFields{}, err
-		}
-		return res.ToFields(), nil
-	}
-	res := resources.SpaceQuotaResource{}
-	err = client.Gateways().CloudControllerGateway.GetResource(
-		fmt.Sprintf("%s/v2/space_quota_definitions/%s?inline-relations-depth=1", client.Config().ApiEndpoint, quotaGuid),
-		&res)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return models.QuotaFields{}, nil
-		}
-		return models.QuotaFields{}, err
-	}
-	return res.ToModel(), nil
-
-}
 func (c CfQuotaResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	quotaName := d.Get("name").(string)
 
-	quota, err := c.getQuotaFromCf(client, d)
+	quota, err := client.Finder().GetQuotaFromCf(d.Id(), c.isOrgQuota(d))
 	if err != nil {
 		return err
 	}
@@ -189,7 +158,7 @@ func (c CfQuotaResource) Update(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	quotaCf, err := c.getQuotaFromCf(client, d)
+	quotaCf, err := client.Finder().GetQuotaFromCf(d.Id(), c.isOrgQuota(d))
 	if err != nil {
 		return err
 	}
@@ -218,7 +187,7 @@ func (c CfQuotaResource) Exists(d *schema.ResourceData, meta interface{}) (bool,
 	client := meta.(cf_client.Client)
 	isOrg := c.isOrgQuota(d)
 	if d.Id() != "" {
-		d, err := c.getQuotaFromCf(client, d)
+		d, err := client.Finder().GetQuotaFromCf(d.Id(), isOrg)
 		if err != nil {
 			return false, err
 		}
@@ -237,7 +206,7 @@ func (c CfQuotaResource) Exists(d *schema.ResourceData, meta interface{}) (bool,
 		quota, err = client.SpaceQuotas().FindByNameAndOrgGUID(name, d.Get("org_id").(string))
 	}
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err

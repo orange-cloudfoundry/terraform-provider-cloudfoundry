@@ -1,13 +1,12 @@
 package resources
 
 import (
-	"code.cloudfoundry.org/cli/cf/api/resources"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"log"
-	"strings"
 )
 
 type CfRouteResource struct {
@@ -61,7 +60,7 @@ func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error 
 func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	route := c.resourceObject(d)
-	routeCf, err := c.getRouteFromCf(client, d.Id())
+	routeCf, err := client.Finder().GetRouteFromCf(d.Id())
 	if err != nil {
 		return err
 	}
@@ -89,23 +88,10 @@ func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
 	return nil
 
 }
-func (c CfRouteResource) getRouteFromCf(client cf_client.Client, routeGuid string) (models.Route, error) {
-	routeRes := resources.RouteResource{}
-	err := client.Gateways().CloudControllerGateway.GetResource(
-		fmt.Sprintf("%s/v2/routes/%s?inline-relations-depth=1", client.Config().ApiEndpoint, routeGuid),
-		&routeRes)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return models.Route{}, nil
-		}
-		return models.Route{}, err
-	}
-	return routeRes.ToModel(), nil
-}
 func (c CfRouteResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	if d.Id() != "" {
-		d, err := c.getRouteFromCf(client, d.Id())
+		d, err := client.Finder().GetRouteFromCf(d.Id())
 		if err != nil {
 			return false, err
 		}
@@ -115,7 +101,7 @@ func (c CfRouteResource) Exists(d *schema.ResourceData, meta interface{}) (bool,
 	port, _ := c.getPortOption(route)
 	routeFinal, err := client.Route().Find(route.Host, route.Domain, route.Path, port)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err
@@ -143,7 +129,7 @@ func (c CfRouteResource) getPortOption(route models.Route) (port int, randomPort
 func (c CfRouteResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	route := c.resourceObject(d)
-	routeCf, err := c.getRouteFromCf(client, d.Id())
+	routeCf, err := client.Finder().GetRouteFromCf(d.Id())
 	if err != nil {
 		return err
 	}

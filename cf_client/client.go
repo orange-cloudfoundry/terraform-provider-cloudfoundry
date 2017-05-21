@@ -24,6 +24,7 @@ import (
 
 type Client interface {
 	Gateways() CloudFoundryGateways
+	Finder() FinderRepository
 	Organizations() organizations.OrganizationRepository
 	Spaces() spaces.SpaceRepository
 	SecurityGroups() securitygroups.SecurityGroupRepo
@@ -73,6 +74,7 @@ type CfClient struct {
 	endpointStrategy            apistrat.EndpointStrategy
 	routeServiceBinding         api.RouteServiceBindingRepository
 	userProvidedService         api.UserProvidedServiceInstanceRepository
+	finder                      FinderRepository
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -141,6 +143,7 @@ func (client *CfClient) LoadDecrypter() {
 func (client *CfClient) LoadRepositories() {
 	gateways := client.gateways
 	repository := gateways.Config
+	client.finder = NewFinderRepository(client.config, gateways.CloudControllerGateway, client.endpointStrategy)
 	client.organizations = organizations.NewCloudControllerOrganizationRepository(repository, gateways.CloudControllerGateway)
 	client.spaces = spaces.NewCloudControllerSpaceRepository(repository, gateways.CloudControllerGateway)
 	client.securityGroups = securitygroups.NewSecurityGroupRepo(repository, gateways.CloudControllerGateway)
@@ -236,4 +239,7 @@ func (client CfClient) RouteServiceBinding() api.RouteServiceBindingRepository {
 }
 func (client CfClient) UserProvidedService() api.UserProvidedServiceInstanceRepository {
 	return client.userProvidedService
+}
+func (client CfClient) Finder() FinderRepository {
+	return client.finder
 }

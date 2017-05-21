@@ -2,8 +2,8 @@ package resources
 
 import (
 	"bytes"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -55,8 +55,8 @@ func (c CfServiceBrokerResource) getFullServiceAccessDef(client cf_client.Client
 	var err error
 	service := c.getService(serviceBroker, serviceAccess.Service)
 	if service.GUID == "" {
-		return servicesAccess, errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
-			serviceAccess.Service, serviceBroker.Name))
+		return servicesAccess, fmt.Errorf("Service '%s' doesn't exist in broker '%s'.",
+			serviceAccess.Service, serviceBroker.Name)
 	}
 	if serviceAccess.OrgId != "" && serviceAccess.Plan != "" {
 		servicesAccess = append(servicesAccess, serviceAccess)
@@ -259,8 +259,8 @@ func (c CfServiceBrokerResource) updateServicesAccess(client cf_client.Client, s
 func (c CfServiceBrokerResource) updateServiceAccess(client cf_client.Client, serviceBroker models.ServiceBroker, serviceAccess ServiceAccess) error {
 	service := c.getService(serviceBroker, serviceAccess.Service)
 	if service.GUID == "" {
-		return errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
-			serviceAccess.Service, serviceBroker.Name))
+		return fmt.Errorf("Service '%s' doesn't exist in broker '%s'.",
+			serviceAccess.Service, serviceBroker.Name)
 	}
 	if serviceAccess.OrgId != "" && serviceAccess.Plan != "" {
 		return c.updateServiceAccessWithPlanAndOrg(client, service, serviceAccess)
@@ -341,8 +341,8 @@ func (c CfServiceBrokerResource) updateServicesAccessToPublicServicePlan(client 
 	for _, serviceAccess := range servicesAccess {
 		service := c.getService(serviceBroker, serviceAccess.Service)
 		if service.GUID == "" {
-			return errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
-				serviceAccess.Service, serviceBroker.Name))
+			return fmt.Errorf("Service '%s' doesn't exist in broker '%s'.",
+				serviceAccess.Service, serviceBroker.Name)
 		}
 		if serviceAccess.Plan != "" || serviceAccess.OrgId != "" {
 			err = c.updateToVisibilityServicePlan(client, service, false)
@@ -358,8 +358,8 @@ func (c CfServiceBrokerResource) updateServicesAccessToPublicServicePlan(client 
 func (c CfServiceBrokerResource) updateServiceAccessWithPlanAndOrg(client cf_client.Client, service models.ServiceOffering, serviceAccess ServiceAccess) error {
 	plan := c.getServicePlan(service, serviceAccess.Plan)
 	if plan.GUID == "" {
-		return errors.New(fmt.Sprintf("Plan '%s' doesn't exist in service '%s'.",
-			serviceAccess.Service, serviceAccess.Plan))
+		return fmt.Errorf("Plan '%s' doesn't exist in service '%s'.",
+			serviceAccess.Service, serviceAccess.Plan)
 	}
 	err := client.ServicePlanVisibilities().Create(plan.GUID, serviceAccess.OrgId)
 	if err != nil {
@@ -396,7 +396,7 @@ func (c CfServiceBrokerResource) getServicePlan(service models.ServiceOffering, 
 func (c CfServiceBrokerResource) getServiceBrokerFromCf(client cf_client.Client, guid string) (models.ServiceBroker, error) {
 	serviceBroker, err := client.ServiceBrokers().FindByGUID(guid)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.HTTPNotFoundError); ok {
 			return models.ServiceBroker{}, nil
 		}
 		return models.ServiceBroker{}, err
@@ -427,7 +427,7 @@ func (c CfServiceBrokerResource) Exists(d *schema.ResourceData, meta interface{}
 	name := d.Get("name").(string)
 	serviceBroker, err := client.ServiceBrokers().FindByName(name)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err
@@ -543,8 +543,8 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 	for _, serviceAccess := range toCreate {
 		service := c.getService(brokerCf, serviceAccess.Service)
 		if service.GUID == "" {
-			return errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
-				serviceAccess.Service, broker.Name))
+			return fmt.Errorf("Service '%s' doesn't exist in broker '%s'.",
+				serviceAccess.Service, broker.Name)
 		}
 		err := c.updateServiceAccessWithPlanAndOrg(client, service, serviceAccess)
 		if err != nil {
@@ -554,13 +554,13 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 	for _, serviceAccess := range toDelete {
 		service := c.getService(brokerCf, serviceAccess.Service)
 		if service.GUID == "" {
-			return errors.New(fmt.Sprintf("Service '%s' doesn't exist in broker '%s'.",
-				serviceAccess.Service, broker.Name))
+			return fmt.Errorf("Service '%s' doesn't exist in broker '%s'.",
+				serviceAccess.Service, broker.Name)
 		}
 		plan := c.getServicePlan(service, serviceAccess.Plan)
 		if plan.GUID == "" {
-			return errors.New(fmt.Sprintf("Plan '%s' doesn't exist in service '%s'.",
-				serviceAccess.Service, serviceAccess.Plan))
+			return fmt.Errorf("Plan '%s' doesn't exist in service '%s'.",
+				serviceAccess.Service, serviceAccess.Plan)
 		}
 		planVisibility, err := c.getPlanVisibilityForPlanAndOrg(client, plan.GUID, serviceAccess.OrgId)
 		if err != nil {
@@ -599,7 +599,7 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 					"Url '%s' is not a valid url. It must begin with http:// or https://",
 					url,
 				)
-				err := errors.New(errMsg)
+				err := fmt.Errorf(errMsg)
 				return make([]string, 0), []error{err}
 			},
 		},

@@ -1,11 +1,11 @@
 package resources
 
 import (
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"log"
-	"strings"
 )
 
 const DEFAULT_ORG_QUOTA_NAME = "default"
@@ -89,7 +89,7 @@ func (c CfOrganizationResource) Read(d *schema.ResourceData, meta interface{}) e
 func (c CfOrganizationResource) getOrgFromCf(client cf_client.Client, orgGuid string) (models.Organization, error) {
 	orgs, err := client.Organizations().GetManyOrgsByGUID([]string{orgGuid})
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.HTTPNotFoundError); ok {
 			return models.Organization{}, nil
 		}
 		return models.Organization{}, err
@@ -108,7 +108,7 @@ func (c CfOrganizationResource) Exists(d *schema.ResourceData, meta interface{})
 	orgName := d.Get("name").(string)
 	org, err := client.Organizations().FindByName(orgName)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err

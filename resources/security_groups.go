@@ -2,7 +2,6 @@ package resources
 
 import (
 	"bytes"
-	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/models"
 	"errors"
 	"fmt"
@@ -141,7 +140,7 @@ func (c CfSecurityGroupResource) Create(d *schema.ResourceData, meta interface{}
 func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroupName := d.Get("name").(string)
-	secGroup, err := c.GetSecGroupFromCf(client, d.Id())
+	secGroup, err := client.Finder().GetSecGroupFromCf(d.Id())
 	if err != nil {
 		return err
 	}
@@ -176,7 +175,7 @@ func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) 
 func (c CfSecurityGroupResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroup := c.resourceObject(d)
-	secGroupCf, err := c.GetSecGroupFromCf(client, d.Id())
+	secGroupCf, err := client.Finder().GetSecGroupFromCf(d.Id())
 	if err != nil {
 		return err
 	}
@@ -271,36 +270,10 @@ func (c CfSecurityGroupResource) existsSecurityGroup(secGroups []models.Security
 	}
 	return false
 }
-func (c CfSecurityGroupResource) GetSecGroupFromCf(client cf_client.Client, secGroupId string) (models.SecurityGroup, error) {
-	res := resources.SecurityGroupResource{}
-	err := client.Gateways().CloudControllerGateway.GetResource(
-		fmt.Sprintf("%s/v2/security_groups/%s?inline-relations-depth=1", client.Config().ApiEndpoint, secGroupId),
-		&res)
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return models.SecurityGroup{}, nil
-		}
-		return models.SecurityGroup{}, err
-	}
-	secGroup := res.ToModel()
-	err = client.Gateways().CloudControllerGateway.ListPaginatedResources(
-		client.Config().ApiEndpoint,
-		secGroup.SpaceURL+"?inline-relations-depth=1",
-		resources.SpaceResource{},
-		func(resource interface{}) bool {
-			if asgr, ok := resource.(resources.SpaceResource); ok {
-				secGroup.Spaces = append(secGroup.Spaces, asgr.ToModel())
-				return true
-			}
-			return false
-		},
-	)
-	return secGroup, nil
-}
 func (c CfSecurityGroupResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	if d.Id() != "" {
-		d, err := c.GetSecGroupFromCf(client, d.Id())
+		d, err := client.Finder().GetSecGroupFromCf(d.Id())
 		if err != nil {
 			return false, err
 		}

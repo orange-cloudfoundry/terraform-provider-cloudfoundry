@@ -1,14 +1,13 @@
 package resources
 
 import (
-	"code.cloudfoundry.org/cli/cf/api/resources"
+	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/viant/toolbox"
 	"log"
-	"strings"
 )
 
 type CfDomainResource struct {
@@ -47,7 +46,7 @@ func (c CfDomainResource) Create(d *schema.ResourceData, meta interface{}) error
 		c.Exists(d, meta)
 	}
 	domain.GUID = d.Id()
-	domainCf, err := c.getDomainFromCf(client, domain)
+	domainCf, err := client.Finder().GetDomainFromCf(domain)
 	if err != nil {
 		return err
 	}
@@ -119,7 +118,7 @@ func (c CfDomainResource) updateSharedToOrg(client cf_client.Client, domain mode
 func (c CfDomainResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	domain := c.resourceObject(d)
-	domainCf, err := c.getDomainFromCf(client, domain)
+	domainCf, err := client.Finder().GetDomainFromCf(domain)
 	if err != nil {
 		return err
 	}
@@ -187,32 +186,7 @@ func (c CfDomainResource) createPrivateDomain(client cf_client.Client, domain mo
 	_, err := client.Domain().Create(domain.Name, domain.OwningOrganizationGUID)
 	return err
 }
-func (c CfDomainResource) getDomainFromCf(client cf_client.Client, domain models.DomainFields) (models.DomainFields, error) {
-	res := resources.DomainResource{}
-	err := client.Gateways().CloudControllerGateway.GetResource(
-		fmt.Sprintf("%s%s/%s",
-			client.Config().ApiEndpoint,
-			client.EndpointStrategy().PrivateDomainsURL(),
-			domain.GUID,
-		),
-		&res)
-	if err != nil {
-		err = client.Gateways().CloudControllerGateway.GetResource(
-			fmt.Sprintf("%s%s/%s",
-				client.Config().ApiEndpoint,
-				client.EndpointStrategy().SharedDomainsURL(),
-				domain.GUID,
-			),
-			&res)
-	}
-	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return models.DomainFields{}, nil
-		}
-		return models.DomainFields{}, err
-	}
-	return res.ToFields(), nil
-}
+
 func (c CfDomainResource) getRouterGuid(client cf_client.Client, routerName string) (string, error) {
 	var router models.RouterGroup
 	err := client.RoutingAPI().ListRouterGroups(func(r models.RouterGroup) bool {
@@ -234,7 +208,7 @@ func (c CfDomainResource) Exists(d *schema.ResourceData, meta interface{}) (bool
 	client := meta.(cf_client.Client)
 	if d.Id() != "" {
 		dOrig := c.resourceObject(d)
-		d, err := c.getDomainFromCf(client, dOrig)
+		d, err := client.Finder().GetDomainFromCf(dOrig)
 		if err != nil {
 			return false, err
 		}
@@ -247,9 +221,8 @@ func (c CfDomainResource) Exists(d *schema.ResourceData, meta interface{}) (bool
 	if err != nil || domain.GUID == "" {
 		domain, err = client.Domain().FindPrivateByName(domainName)
 	}
-
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
+		if _, ok := err.(*errors.ModelNotFoundError); ok {
 			return false, nil
 		}
 		return false, err
@@ -260,7 +233,7 @@ func (c CfDomainResource) Exists(d *schema.ResourceData, meta interface{}) (bool
 func (c CfDomainResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	domain := c.resourceObject(d)
-	domainCf, err := c.getDomainFromCf(client, domain)
+	domainCf, err := client.Finder().GetDomainFromCf(domain)
 	if err != nil {
 		return err
 	}
