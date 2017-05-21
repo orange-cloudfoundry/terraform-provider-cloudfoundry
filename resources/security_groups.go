@@ -2,13 +2,13 @@ package resources
 
 import (
 	"bytes"
+	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/models"
 	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
 	"log"
 	"reflect"
 	"regexp"
@@ -141,7 +141,7 @@ func (c CfSecurityGroupResource) Create(d *schema.ResourceData, meta interface{}
 func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroupName := d.Get("name").(string)
-	secGroup, err := c.getSecGroupFromCf(client, d.Id(), true)
+	secGroup, err := c.GetSecGroupFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (c CfSecurityGroupResource) Read(d *schema.ResourceData, meta interface{}) 
 func (c CfSecurityGroupResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	secGroup := c.resourceObject(d)
-	secGroupCf, err := c.getSecGroupFromCf(client, d.Id(), false)
+	secGroupCf, err := c.GetSecGroupFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
@@ -271,22 +271,33 @@ func (c CfSecurityGroupResource) existsSecurityGroup(secGroups []models.Security
 	}
 	return false
 }
-func (c CfSecurityGroupResource) getSecGroupFromCf(client cf_client.Client, secGroupId string, updateCache bool) (models.SecurityGroupFields, error) {
-	secGroups, err := caching.GetSecGroupsFromCf(client, updateCache)
+func (c CfSecurityGroupResource) GetSecGroupFromCf(client cf_client.Client, secGroupId string) (models.SecurityGroup, error) {
+	res := resources.SecurityGroupResource{}
+	err := client.Gateways().CloudControllerGateway.GetResource(
+		fmt.Sprintf("%s/v2/security_groups/%s?inline-relations-depth=1", client.Config().ApiEndpoint, secGroupId),
+		&res)
 	if err != nil {
-		return models.SecurityGroupFields{}, err
+		return models.SecurityGroup{}, err
 	}
-	for _, secGroup := range secGroups {
-		if secGroup.GUID == secGroupId {
-			return secGroup.SecurityGroupFields, nil
-		}
-	}
-	return models.SecurityGroupFields{}, nil
+	secGroup := res.ToModel()
+	err = client.Gateways().CloudControllerGateway.ListPaginatedResources(
+		client.Config().ApiEndpoint,
+		secGroup.SpaceURL+"?inline-relations-depth=1",
+		resources.SpaceResource{},
+		func(resource interface{}) bool {
+			if asgr, ok := resource.(resources.SpaceResource); ok {
+				secGroup.Spaces = append(secGroup.Spaces, asgr.ToModel())
+				return true
+			}
+			return false
+		},
+	)
+	return secGroup, nil
 }
 func (c CfSecurityGroupResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	name := d.Get("name").(string)
-	secGroups, err := caching.GetSecGroupsFromCf(client, true)
+	secGroups, err := client.SecurityGroups().FindAll()
 	if err != nil {
 		return false, err
 	}

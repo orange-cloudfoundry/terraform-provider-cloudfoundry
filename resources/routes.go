@@ -105,7 +105,7 @@ func (c CfRouteResource) Exists(d *schema.ResourceData, meta interface{}) (bool,
 	port, _ := c.getPortOption(route)
 	routeFinal, err := client.Route().Find(route.Host, route.Domain, route.Path, port)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
 		return false, err
@@ -169,6 +169,7 @@ func (c CfRouteResource) Schema() map[string]*schema.Schema {
 		"hostname": &schema.Schema{
 			Type:     schema.TypeString,
 			Optional: true,
+			ForceNew: true,
 		},
 		"path": &schema.Schema{
 			Type:     schema.TypeString,
@@ -179,7 +180,6 @@ func (c CfRouteResource) Schema() map[string]*schema.Schema {
 			Type:     schema.TypeInt,
 			Optional: true,
 			Default:  -1,
-			ForceNew: true,
 		},
 	}
 }

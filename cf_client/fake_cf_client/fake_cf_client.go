@@ -19,6 +19,8 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spacequotas/spacequotasfakes"
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spaces/spacesfakes"
+	"code.cloudfoundry.org/cli/cf/api/stacks"
+	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption/fake_encryption"
@@ -139,6 +141,12 @@ func (client FakeCfClient) Route() api.RouteRepository {
 }
 func (client FakeCfClient) Gateways() cf_client.CloudFoundryGateways {
 	return cf_client.CloudFoundryGateways{}
+}
+func (client FakeCfClient) Stack() stacks.CloudControllerStackRepository {
+	return stacks.CloudControllerStackRepository{}
+}
+func (client FakeCfClient) EndpointStrategy() apistrat.EndpointStrategy {
+	return apistrat.NewEndpointStrategy("2.80.0")
 }
 
 // get Fake call -------

@@ -12,6 +12,7 @@ import (
 	spacesbinder "code.cloudfoundry.org/cli/cf/api/securitygroups/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spacequotas"
 	"code.cloudfoundry.org/cli/cf/api/spaces"
+	"code.cloudfoundry.org/cli/cf/api/stacks"
 	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/cf/i18n"
@@ -42,6 +43,8 @@ type Client interface {
 	Domain() api.DomainRepository
 	RoutingAPI() api.RoutingAPIRepository
 	Route() api.RouteRepository
+	Stack() stacks.CloudControllerStackRepository
+	EndpointStrategy() apistrat.EndpointStrategy
 }
 type CfClient struct {
 	config                      Config
@@ -64,6 +67,8 @@ type CfClient struct {
 	domain                      api.DomainRepository
 	routingApi                  api.RoutingAPIRepository
 	route                       api.RouteRepository
+	stack                       stacks.CloudControllerStackRepository
+	endpointStrategy            apistrat.EndpointStrategy
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -80,6 +85,8 @@ func (client *CfClient) Init() error {
 	if err != nil {
 		return err
 	}
+	client.endpointStrategy = apistrat.NewEndpointStrategy("2.80.0")
+
 	repository := NewTerraformRepository()
 	repository.SetAPIEndpoint(client.config.ApiEndpoint)
 	repository.SetAPIVersion(ccClient.APIVersion())
@@ -144,9 +151,10 @@ func (client *CfClient) LoadRepositories() {
 	client.securityGroupsStagingBinder = secgroupstag.NewSecurityGroupsRepo(repository, gateways.CloudControllerGateway)
 	client.servicePlans = api.NewCloudControllerServicePlanRepository(repository, gateways.CloudControllerGateway)
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
-	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway, apistrat.NewEndpointStrategy("2.80.0"))
+	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway, client.endpointStrategy)
 	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
 	client.route = api.NewCloudControllerRouteRepository(repository, gateways.CloudControllerGateway)
+	client.stack = stacks.NewCloudControllerStackRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -210,4 +218,10 @@ func (client CfClient) RoutingAPI() api.RoutingAPIRepository {
 }
 func (client CfClient) Route() api.RouteRepository {
 	return client.route
+}
+func (client CfClient) Stack() stacks.CloudControllerStackRepository {
+	return client.stack
+}
+func (client CfClient) EndpointStrategy() apistrat.EndpointStrategy {
+	return client.endpointStrategy
 }

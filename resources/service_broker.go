@@ -420,7 +420,7 @@ func (c CfServiceBrokerResource) Exists(d *schema.ResourceData, meta interface{}
 	name := d.Get("name").(string)
 	serviceBroker, err := client.ServiceBrokers().FindByName(name)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
 		return false, err

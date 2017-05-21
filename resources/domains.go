@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/models"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -157,6 +158,9 @@ func (c CfDomainResource) Read(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	for _, orgId := range currentOrgs {
+		if orgId == domainCf.OwningOrganizationGUID {
+			continue
+		}
 		orgsSharedSchema.Add(orgId)
 	}
 	d.Set("orgs_shared_id", orgsSharedSchema)
@@ -184,25 +188,27 @@ func (c CfDomainResource) createPrivateDomain(client cf_client.Client, domain mo
 	return err
 }
 func (c CfDomainResource) getDomainFromCf(client cf_client.Client, domain models.DomainFields) (models.DomainFields, error) {
-	var finalDomain models.DomainFields
-	orgs, err := client.Organizations().ListOrgs(0)
+	res := resources.DomainResource{}
+	err := client.Gateways().CloudControllerGateway.GetResource(
+		fmt.Sprintf("%s%s/%s",
+			client.Config().ApiEndpoint,
+			client.EndpointStrategy().PrivateDomainsURL(),
+			domain.GUID,
+		),
+		&res)
 	if err != nil {
-		return finalDomain, err
+		err = client.Gateways().CloudControllerGateway.GetResource(
+			fmt.Sprintf("%s%s/%s",
+				client.Config().ApiEndpoint,
+				client.EndpointStrategy().SharedDomainsURL(),
+				domain.GUID,
+			),
+			&res)
 	}
-	for _, org := range orgs {
-		client.Domain().ListDomainsForOrg(org.GUID, func(domainFound models.DomainFields) bool {
-			if domainFound.GUID == domain.GUID {
-				finalDomain = domainFound
-				return false
-			}
-			return true
-		})
-		if finalDomain.GUID != "" {
-			return finalDomain, nil
-		}
+	if err != nil {
+		return models.DomainFields{}, err
 	}
-
-	return finalDomain, fmt.Errorf("Can't found domain '%s'.", domain.GUID)
+	return res.ToFields(), nil
 }
 func (c CfDomainResource) getRouterGuid(client cf_client.Client, routerName string) (string, error) {
 	var router models.RouterGroup
@@ -232,7 +238,7 @@ func (c CfDomainResource) Exists(d *schema.ResourceData, meta interface{}) (bool
 	}
 
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
 		return false, err
@@ -269,17 +275,6 @@ func (c CfDomainResource) Update(d *schema.ResourceData, meta interface{}) error
 		if err := c.updateSharedToOrg(client, domain, currentOrgs, orgs); err != nil {
 			return err
 		}
-	}
-	if domain.Name == domainCf.Name &&
-		domain.OwningOrganizationGUID == domainCf.OwningOrganizationGUID &&
-		domain.Shared == domainCf.Shared {
-		return nil
-	}
-	if err := c.Delete(d, meta); err != nil {
-		return err
-	}
-	if err := c.Create(d, meta); err != nil {
-		return err
 	}
 	return nil
 }

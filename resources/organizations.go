@@ -89,7 +89,7 @@ func (c CfOrganizationResource) Read(d *schema.ResourceData, meta interface{}) e
 func (c CfOrganizationResource) getOrgFromCf(client cf_client.Client, orgGuid string) (models.Organization, error) {
 	orgs, err := client.Organizations().GetManyOrgsByGUID([]string{orgGuid})
 	if err != nil {
-		if strings.Contains(err.Error(), "status code: 404") {
+		if strings.Contains(err.Error(), "404") {
 			return models.Organization{}, nil
 		}
 		return models.Organization{}, err

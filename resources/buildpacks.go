@@ -1,10 +1,11 @@
 package resources
 
 import (
+	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/models"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
 	"log"
 	"os"
 	"path"
@@ -51,7 +52,7 @@ func (c CfBuildpackResource) Create(d *schema.ResourceData, meta interface{}) er
 			client.Config().ApiEndpoint,
 			buildpack.Name,
 		)
-		buildpackCf, err = c.getBuildpackFromCf(client, d.Id(), false)
+		buildpackCf, err = c.getBuildpackFromCf(client, d.Id())
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,7 @@ func (c CfBuildpackResource) Exists(d *schema.ResourceData, meta interface{}) (b
 	name := d.Get("name").(string)
 	buildpack, err := client.Buildpack().FindByName(name)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
 		return false, err
@@ -108,7 +109,7 @@ func (c CfBuildpackResource) generateFilename(buildpackPath string) (string, err
 func (c CfBuildpackResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	name := d.Get("name").(string)
-	buildpack, err := c.getBuildpackFromCf(client, d.Id(), true)
+	buildpack, err := c.getBuildpackFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ func (c CfBuildpackResource) Update(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return err
 	}
-	buildpackCf, err := c.getBuildpackFromCf(client, d.Id(), false)
+	buildpackCf, err := c.getBuildpackFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
@@ -204,17 +205,15 @@ func (c CfBuildpackResource) Delete(d *schema.ResourceData, meta interface{}) er
 	}
 	return client.Buildpack().Delete(d.Id())
 }
-func (c CfBuildpackResource) getBuildpackFromCf(client cf_client.Client, bpGuid string, updateCache bool) (models.Buildpack, error) {
-	buildpacks, err := caching.GetBuildpacks(client, updateCache)
+func (c CfBuildpackResource) getBuildpackFromCf(client cf_client.Client, bpGuid string) (models.Buildpack, error) {
+	res := resources.BuildpackResource{}
+	err := client.Gateways().CloudControllerGateway.GetResource(
+		fmt.Sprintf("%s/v2/buildpacks/%s?inline-relations-depth=1", client.Config().ApiEndpoint, bpGuid),
+		&res)
 	if err != nil {
 		return models.Buildpack{}, err
 	}
-	for _, buildpack := range buildpacks {
-		if buildpack.GUID == bpGuid {
-			return buildpack, nil
-		}
-	}
-	return models.Buildpack{}, nil
+	return res.ToFields(), nil
 }
 func (c CfBuildpackResource) Schema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{

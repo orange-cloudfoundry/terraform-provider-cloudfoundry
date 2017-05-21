@@ -1,10 +1,11 @@
 package resources
 
 import (
+	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/models"
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
-	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/resources/caching"
 	"log"
 	"strings"
 )
@@ -44,19 +45,18 @@ func (c CfSpaceResource) extractSecGroups(d *schema.ResourceData) []models.Secur
 	}
 	return secGroups
 }
-func (c CfSpaceResource) getSpaceFromCf(client cf_client.Client, orgGuid, spaceGuid string) (models.Space, error) {
-	var space models.Space
-	err := client.Spaces().ListSpacesFromOrg(orgGuid, func(spaceCf models.Space) bool {
-		if spaceCf.GUID == spaceGuid {
-			space = spaceCf
-			return false
-		}
-		return true
-	})
-	if err != nil && strings.Contains(err.Error(), "status code: 404") {
+func (c CfSpaceResource) getSpaceFromCf(client cf_client.Client, spaceGuid string) (models.Space, error) {
+	res := resources.SpaceResource{}
+	err := client.Gateways().CloudControllerGateway.GetResource(
+		fmt.Sprintf("%s/v2/spaces/%s?inline-relations-depth=1", client.Config().ApiEndpoint, spaceGuid),
+		&res)
+	if err != nil && strings.Contains(err.Error(), "404") {
 		return models.Space{}, nil
 	}
-	return space, err
+	if err != nil {
+		return models.Space{}, err
+	}
+	return res.ToModel(), nil
 }
 func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error {
 	var spaceCf models.Space
@@ -70,7 +70,7 @@ func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error 
 			client.Config().ApiEndpoint,
 			space.Name,
 		)
-		spaceCf, err = c.getSpaceFromCf(client, space.Organization.GUID, d.Id())
+		spaceCf, err = c.getSpaceFromCf(client, d.Id())
 	} else {
 		spaceCf, err = client.Spaces().Create(space.Name, space.Organization.GUID, space.SpaceQuotaGUID)
 	}
@@ -113,7 +113,7 @@ func (c CfSpaceResource) updateSecGroups(client cf_client.Client, secGroupFrom, 
 func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields []models.SecurityGroupFields) []models.SecurityGroupFields {
 	secGroupsFiltered := make([]models.SecurityGroupFields, 0)
 	for _, secGroupField := range secGroupFields {
-		secGroup, _ := caching.GetSecGroupFromCf(client, secGroupField.GUID, false)
+		secGroup, _ := CfSecurityGroupResource{}.GetSecGroupFromCf(client, secGroupField.GUID)
 		if secGroup.GUID == "" || len(secGroup.Spaces) == 0 {
 			continue
 		}
@@ -124,8 +124,7 @@ func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields 
 func (c CfSpaceResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	name := d.Get("name").(string)
-	orgGuid := d.Get("org_id").(string)
-	space, err := c.getSpaceFromCf(client, orgGuid, d.Id())
+	space, err := c.getSpaceFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
@@ -151,7 +150,7 @@ func (c CfSpaceResource) Read(d *schema.ResourceData, meta interface{}) error {
 func (c CfSpaceResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	space := c.resourceObject(d)
-	spaceCf, err := c.getSpaceFromCf(client, space.Organization.GUID, space.GUID)
+	spaceCf, err := c.getSpaceFromCf(client, space.GUID)
 	if err != nil {
 		return err
 	}
@@ -201,7 +200,7 @@ func (c CfSpaceResource) Exists(d *schema.ResourceData, meta interface{}) (bool,
 	client := meta.(cf_client.Client)
 	space, err := client.Spaces().FindByNameInOrg(d.Get("name").(string), d.Get("org_id").(string))
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if strings.Contains(err.Error(), "404") {
 			return false, nil
 		}
 		return false, err
