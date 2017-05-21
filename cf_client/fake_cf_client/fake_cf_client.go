@@ -41,6 +41,9 @@ type FakeCfClient struct {
 	servicePlans                *apifakes.FakeServicePlanRepository
 	decrypter                   encryption.Decrypter
 	services                    *apifakes.FakeServiceRepository
+	domain                      *apifakes.FakeDomainRepository
+	routingApi                  *apifakes.FakeRoutingAPIRepository
+	route                       *apifakes.FakeRouteRepository
 }
 
 func NewFakeCfClient() *FakeCfClient {
@@ -69,6 +72,9 @@ func (c *FakeCfClient) Init() {
 	c.securityGroupsStagingBinder = new(secgroupstagfake.FakeSecurityGroupsRepo)
 	c.servicePlans = new(apifakes.FakeServicePlanRepository)
 	c.services = new(apifakes.FakeServiceRepository)
+	c.domain = new(apifakes.FakeDomainRepository)
+	c.routingApi = new(apifakes.FakeRoutingAPIRepository)
+	c.route = new(apifakes.FakeRouteRepository)
 	c.decrypter = fake_encryption.NewFakeDecrypter()
 }
 func (client FakeCfClient) Organizations() organizations.OrganizationRepository {
@@ -122,6 +128,18 @@ func (client FakeCfClient) Services() api.ServiceRepository {
 func (client FakeCfClient) Decrypter() encryption.Decrypter {
 	return client.decrypter
 }
+func (client FakeCfClient) Domain() api.DomainRepository {
+	return client.domain
+}
+func (client FakeCfClient) RoutingAPI() api.RoutingAPIRepository {
+	return client.routingApi
+}
+func (client FakeCfClient) Route() api.RouteRepository {
+	return client.route
+}
+func (client FakeCfClient) Gateways() cf_client.CloudFoundryGateways {
+	return cf_client.CloudFoundryGateways{}
+}
 
 // get Fake call -------
 
@@ -169,4 +187,13 @@ func (client FakeCfClient) FakeServicePlans() *apifakes.FakeServicePlanRepositor
 }
 func (client FakeCfClient) FakeServices() *apifakes.FakeServiceRepository {
 	return client.services
+}
+func (client FakeCfClient) FakeDomain() api.DomainRepository {
+	return client.domain
+}
+func (client FakeCfClient) FakeRoutingAPI() api.RoutingAPIRepository {
+	return client.routingApi
+}
+func (client FakeCfClient) FakeRoute() api.RouteRepository {
+	return client.route
 }

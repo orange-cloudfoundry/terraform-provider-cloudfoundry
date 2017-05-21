@@ -22,6 +22,7 @@ import (
 )
 
 type Client interface {
+	Gateways() CloudFoundryGateways
 	Organizations() organizations.OrganizationRepository
 	Spaces() spaces.SpaceRepository
 	SecurityGroups() securitygroups.SecurityGroupRepo
@@ -40,6 +41,7 @@ type Client interface {
 	Decrypter() encryption.Decrypter
 	Domain() api.DomainRepository
 	RoutingAPI() api.RoutingAPIRepository
+	Route() api.RouteRepository
 }
 type CfClient struct {
 	config                      Config
@@ -61,6 +63,7 @@ type CfClient struct {
 	services                    api.ServiceRepository
 	domain                      api.DomainRepository
 	routingApi                  api.RoutingAPIRepository
+	route                       api.RouteRepository
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -143,6 +146,10 @@ func (client *CfClient) LoadRepositories() {
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
 	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway, apistrat.NewEndpointStrategy("2.80.0"))
 	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
+	client.route = api.NewCloudControllerRouteRepository(repository, gateways.CloudControllerGateway)
+}
+func (client CfClient) Gateways() CloudFoundryGateways {
+	return client.gateways
 }
 func (client CfClient) Organizations() organizations.OrganizationRepository {
 	return client.organizations
@@ -200,4 +207,7 @@ func (client CfClient) Domain() api.DomainRepository {
 }
 func (client CfClient) RoutingAPI() api.RoutingAPIRepository {
 	return client.routingApi
+}
+func (client CfClient) Route() api.RouteRepository {
+	return client.route
 }

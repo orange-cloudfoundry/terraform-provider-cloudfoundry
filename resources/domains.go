@@ -147,14 +147,15 @@ func (c CfDomainResource) Read(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 	}
-	if domainCf.OwningOrganizationGUID != "" {
+	orgsSharedSchema := schema.NewSet(d.Get("orgs_shared_id").(*schema.Set).F, make([]interface{}, 0))
+	if domainCf.Shared {
+		d.Set("orgs_shared_id", orgsSharedSchema)
 		return nil
 	}
 	currentOrgs, err := c.getOrgsSharedIdFromCf(client, d.Id())
 	if err != nil {
 		return err
 	}
-	orgsSharedSchema := schema.NewSet(d.Get("orgs_shared_id").(*schema.Set).F, make([]interface{}, 0))
 	for _, orgId := range currentOrgs {
 		orgsSharedSchema.Add(orgId)
 	}
@@ -192,6 +193,7 @@ func (c CfDomainResource) getDomainFromCf(client cf_client.Client, domain models
 		client.Domain().ListDomainsForOrg(org.GUID, func(domainFound models.DomainFields) bool {
 			if domainFound.GUID == domain.GUID {
 				finalDomain = domainFound
+				return false
 			}
 			return true
 		})
@@ -295,14 +297,17 @@ func (c CfDomainResource) Schema() map[string]*schema.Schema {
 		"name": &schema.Schema{
 			Type:     schema.TypeString,
 			Required: true,
+			ForceNew: true,
 		},
 		"router_group": &schema.Schema{
 			Type:     schema.TypeString,
 			Optional: true,
+			ForceNew: true,
 		},
 		"org_owner_id": &schema.Schema{
 			Type:     schema.TypeString,
 			Optional: true,
+			ForceNew: true,
 		},
 		"orgs_shared_id": &schema.Schema{
 			Type:     schema.TypeSet,
@@ -313,6 +318,7 @@ func (c CfDomainResource) Schema() map[string]*schema.Schema {
 		"shared": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
+			ForceNew: true,
 		},
 	}
 }
