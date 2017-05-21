@@ -396,7 +396,7 @@ func (c CfServiceBrokerResource) getServicePlan(service models.ServiceOffering, 
 func (c CfServiceBrokerResource) getServiceBrokerFromCf(client cf_client.Client, guid string) (models.ServiceBroker, error) {
 	serviceBroker, err := client.ServiceBrokers().FindByGUID(guid)
 	if err != nil {
-		if strings.Contains(err.Error(), "status code: 404") {
+		if strings.Contains(err.Error(), "404") {
 			return models.ServiceBroker{}, nil
 		}
 		return models.ServiceBroker{}, err
@@ -417,6 +417,13 @@ func (c CfServiceBrokerResource) getServiceBrokerFromCf(client cf_client.Client,
 }
 func (c CfServiceBrokerResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.getServiceBrokerFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	name := d.Get("name").(string)
 	serviceBroker, err := client.ServiceBrokers().FindByName(name)
 	if err != nil {

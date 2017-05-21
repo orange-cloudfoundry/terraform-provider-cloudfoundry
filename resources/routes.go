@@ -95,12 +95,22 @@ func (c CfRouteResource) getRouteFromCf(client cf_client.Client, routeGuid strin
 		fmt.Sprintf("%s/v2/routes/%s?inline-relations-depth=1", client.Config().ApiEndpoint, routeGuid),
 		&routeRes)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return models.Route{}, nil
+		}
 		return models.Route{}, err
 	}
 	return routeRes.ToModel(), nil
 }
 func (c CfRouteResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.getRouteFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	route := c.resourceObject(d)
 	port, _ := c.getPortOption(route)
 	routeFinal, err := client.Route().Find(route.Host, route.Domain, route.Path, port)
@@ -126,6 +136,10 @@ func (c CfRouteResource) getPortOption(route models.Route) (port int, randomPort
 	}
 	return
 }
+
+//func (c CfRouteResource) updateBinding(client cf_client.Client, routeGuid, serviceGuid string) error {
+//	client.RouteServiceBinding().Bind()
+//}
 func (c CfRouteResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	route := c.resourceObject(d)
@@ -180,6 +194,15 @@ func (c CfRouteResource) Schema() map[string]*schema.Schema {
 			Type:     schema.TypeInt,
 			Optional: true,
 			Default:  -1,
+			ForceNew: true,
+		},
+		"service_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"service_params": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
 		},
 	}
 }

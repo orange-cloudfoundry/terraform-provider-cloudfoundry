@@ -27,6 +27,8 @@ type TerraformRepository struct {
 	locale                   string
 	minCLIVersion            string
 	minRecommendedCLIVersion string
+	space                    models.SpaceFields
+	org                      models.OrganizationFields
 	mutex                    *sync.RWMutex
 }
 
@@ -117,14 +119,14 @@ func (c *TerraformRepository) RefreshToken() (refreshToken string) {
 
 func (c *TerraformRepository) OrganizationFields() (org models.OrganizationFields) {
 	c.read(func() {
-		org = models.OrganizationFields{}
+		org = c.org
 	})
 	return
 }
 
 func (c *TerraformRepository) SpaceFields() (space models.SpaceFields) {
 	c.read(func() {
-		space = models.SpaceFields{}
+		space = c.space
 	})
 	return
 }
@@ -341,11 +343,15 @@ func (c *TerraformRepository) SetRefreshToken(token string) {
 }
 
 func (c *TerraformRepository) SetOrganizationFields(org models.OrganizationFields) {
-
+	c.write(func() {
+		c.org = org
+	})
 }
 
 func (c *TerraformRepository) SetSpaceFields(space models.SpaceFields) {
-
+	c.write(func() {
+		c.space = space
+	})
 }
 
 func (c *TerraformRepository) SetSSLDisabled(disabled bool) {

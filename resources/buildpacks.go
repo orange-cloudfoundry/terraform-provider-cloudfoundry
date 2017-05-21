@@ -72,6 +72,13 @@ func (c CfBuildpackResource) Create(d *schema.ResourceData, meta interface{}) er
 
 func (c CfBuildpackResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.getBuildpackFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	name := d.Get("name").(string)
 	buildpack, err := client.Buildpack().FindByName(name)
 	if err != nil {
@@ -211,6 +218,9 @@ func (c CfBuildpackResource) getBuildpackFromCf(client cf_client.Client, bpGuid 
 		fmt.Sprintf("%s/v2/buildpacks/%s?inline-relations-depth=1", client.Config().ApiEndpoint, bpGuid),
 		&res)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return models.Buildpack{}, nil
+		}
 		return models.Buildpack{}, err
 	}
 	return res.ToFields(), nil

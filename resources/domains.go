@@ -206,6 +206,9 @@ func (c CfDomainResource) getDomainFromCf(client cf_client.Client, domain models
 			&res)
 	}
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return models.DomainFields{}, nil
+		}
 		return models.DomainFields{}, err
 	}
 	return res.ToFields(), nil
@@ -229,6 +232,14 @@ func (c CfDomainResource) getRouterGuid(client cf_client.Client, routerName stri
 }
 func (c CfDomainResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		dOrig := c.resourceObject(d)
+		d, err := c.getDomainFromCf(client, dOrig)
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	domainName := d.Get("name").(string)
 	var domain models.DomainFields
 	var err error

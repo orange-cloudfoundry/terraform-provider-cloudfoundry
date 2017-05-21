@@ -198,6 +198,13 @@ func (c CfSpaceResource) Delete(d *schema.ResourceData, meta interface{}) error 
 }
 func (c CfSpaceResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.getSpaceFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	space, err := client.Spaces().FindByNameInOrg(d.Get("name").(string), d.Get("org_id").(string))
 	if err != nil {
 		if strings.Contains(err.Error(), "404") {

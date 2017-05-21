@@ -46,6 +46,8 @@ type FakeCfClient struct {
 	domain                      *apifakes.FakeDomainRepository
 	routingApi                  *apifakes.FakeRoutingAPIRepository
 	route                       *apifakes.FakeRouteRepository
+	routeServiceBinding         *apifakes.FakeRouteServiceBindingRepository
+	userProvidedService         *apifakes.FakeUserProvidedServiceInstanceRepository
 }
 
 func NewFakeCfClient() *FakeCfClient {
@@ -77,6 +79,8 @@ func (c *FakeCfClient) Init() {
 	c.domain = new(apifakes.FakeDomainRepository)
 	c.routingApi = new(apifakes.FakeRoutingAPIRepository)
 	c.route = new(apifakes.FakeRouteRepository)
+	c.routeServiceBinding = new(apifakes.FakeRouteServiceBindingRepository)
+	c.userProvidedService = new(apifakes.FakeUserProvidedServiceInstanceRepository)
 	c.decrypter = fake_encryption.NewFakeDecrypter()
 }
 func (client FakeCfClient) Organizations() organizations.OrganizationRepository {
@@ -148,6 +152,12 @@ func (client FakeCfClient) Stack() stacks.CloudControllerStackRepository {
 func (client FakeCfClient) EndpointStrategy() apistrat.EndpointStrategy {
 	return apistrat.NewEndpointStrategy("2.80.0")
 }
+func (client FakeCfClient) RouteServiceBinding() api.RouteServiceBindingRepository {
+	return client.routeServiceBinding
+}
+func (client FakeCfClient) UserProvidedService() api.UserProvidedServiceInstanceRepository {
+	return client.userProvidedService
+}
 
 // get Fake call -------
 
@@ -204,4 +214,10 @@ func (client FakeCfClient) FakeRoutingAPI() api.RoutingAPIRepository {
 }
 func (client FakeCfClient) FakeRoute() api.RouteRepository {
 	return client.route
+}
+func (client FakeCfClient) FakeRouteServiceBinding() *apifakes.FakeRouteServiceBindingRepository {
+	return client.routeServiceBinding
+}
+func (client FakeCfClient) FakeUserProvidedService() *apifakes.FakeUserProvidedServiceInstanceRepository {
+	return client.userProvidedService
 }

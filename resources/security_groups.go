@@ -277,6 +277,9 @@ func (c CfSecurityGroupResource) GetSecGroupFromCf(client cf_client.Client, secG
 		fmt.Sprintf("%s/v2/security_groups/%s?inline-relations-depth=1", client.Config().ApiEndpoint, secGroupId),
 		&res)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return models.SecurityGroup{}, nil
+		}
 		return models.SecurityGroup{}, err
 	}
 	secGroup := res.ToModel()
@@ -296,6 +299,13 @@ func (c CfSecurityGroupResource) GetSecGroupFromCf(client cf_client.Client, secG
 }
 func (c CfSecurityGroupResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.GetSecGroupFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	name := d.Get("name").(string)
 	secGroups, err := client.SecurityGroups().FindAll()
 	if err != nil {

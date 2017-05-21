@@ -98,6 +98,13 @@ func (c CfOrganizationResource) getOrgFromCf(client cf_client.Client, orgGuid st
 }
 func (c CfOrganizationResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	if d.Id() != "" {
+		d, err := c.getOrgFromCf(client, d.Id())
+		if err != nil {
+			return false, err
+		}
+		return d.GUID != "", nil
+	}
 	orgName := d.Get("name").(string)
 	org, err := client.Organizations().FindByName(orgName)
 	if err != nil {

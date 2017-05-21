@@ -80,6 +80,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_service_broker": resources.LoadCfResource(resources.CfServiceBrokerResource{}),
 			"cloudfoundry_domain":         resources.LoadCfResource(resources.CfDomainResource{}),
 			"cloudfoundry_route":          resources.LoadCfResource(resources.CfRouteResource{}),
+			"cloudfoundry_service":        resources.LoadCfResource(resources.CfServiceResource{}),
 		},
 
 		ConfigureFunc: providerConfigure,

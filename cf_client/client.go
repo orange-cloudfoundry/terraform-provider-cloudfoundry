@@ -45,6 +45,8 @@ type Client interface {
 	Route() api.RouteRepository
 	Stack() stacks.CloudControllerStackRepository
 	EndpointStrategy() apistrat.EndpointStrategy
+	RouteServiceBinding() api.RouteServiceBindingRepository
+	UserProvidedService() api.UserProvidedServiceInstanceRepository
 }
 type CfClient struct {
 	config                      Config
@@ -69,6 +71,8 @@ type CfClient struct {
 	route                       api.RouteRepository
 	stack                       stacks.CloudControllerStackRepository
 	endpointStrategy            apistrat.EndpointStrategy
+	routeServiceBinding         api.RouteServiceBindingRepository
+	userProvidedService         api.UserProvidedServiceInstanceRepository
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -155,6 +159,8 @@ func (client *CfClient) LoadRepositories() {
 	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
 	client.route = api.NewCloudControllerRouteRepository(repository, gateways.CloudControllerGateway)
 	client.stack = stacks.NewCloudControllerStackRepository(repository, gateways.CloudControllerGateway)
+	client.routeServiceBinding = api.NewCloudControllerRouteServiceBindingRepository(repository, gateways.CloudControllerGateway)
+	client.userProvidedService = api.NewCCUserProvidedServiceInstanceRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -224,4 +230,10 @@ func (client CfClient) Stack() stacks.CloudControllerStackRepository {
 }
 func (client CfClient) EndpointStrategy() apistrat.EndpointStrategy {
 	return client.endpointStrategy
+}
+func (client CfClient) RouteServiceBinding() api.RouteServiceBindingRepository {
+	return client.routeServiceBinding
+}
+func (client CfClient) UserProvidedService() api.UserProvidedServiceInstanceRepository {
+	return client.userProvidedService
 }

@@ -142,6 +142,9 @@ func (c CfQuotaResource) getQuotaFromCf(client cf_client.Client, d *schema.Resou
 			fmt.Sprintf("%s/v2/quota_definitions/%s?inline-relations-depth=1", client.Config().ApiEndpoint, quotaGuid),
 			&res)
 		if err != nil {
+			if strings.Contains(err.Error(), "404") {
+				return models.QuotaFields{}, nil
+			}
 			return models.QuotaFields{}, err
 		}
 		return res.ToFields(), nil
@@ -151,6 +154,9 @@ func (c CfQuotaResource) getQuotaFromCf(client cf_client.Client, d *schema.Resou
 		fmt.Sprintf("%s/v2/space_quota_definitions/%s?inline-relations-depth=1", client.Config().ApiEndpoint, quotaGuid),
 		&res)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return models.QuotaFields{}, nil
+		}
 		return models.QuotaFields{}, err
 	}
 	return res.ToModel(), nil
@@ -210,10 +216,21 @@ func (c CfQuotaResource) Delete(d *schema.ResourceData, meta interface{}) error 
 }
 func (c CfQuotaResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+	isOrg := c.isOrgQuota(d)
+	if d.Id() != "" {
+		d, err := c.getQuotaFromCf(client, d)
+		if err != nil {
+			return false, err
+		}
+		if isOrg {
+			return d.(models.QuotaFields).GUID != "", nil
+		}
+		return d.(models.SpaceQuota).GUID != "", nil
+
+	}
 	name := d.Get("name").(string)
 	var quota interface{}
 	var err error
-	isOrg := c.isOrgQuota(d)
 	if isOrg {
 		quota, err = client.Quotas().FindByName(name)
 	} else {
