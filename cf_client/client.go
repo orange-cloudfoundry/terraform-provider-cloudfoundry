@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
+	"code.cloudfoundry.org/cli/cf/api/featureflags"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/quotas"
 	"code.cloudfoundry.org/cli/cf/api/securitygroups"
@@ -48,6 +49,7 @@ type Client interface {
 	EndpointStrategy() apistrat.EndpointStrategy
 	RouteServiceBinding() api.RouteServiceBindingRepository
 	UserProvidedService() api.UserProvidedServiceInstanceRepository
+	FeatureFlags() featureflags.FeatureFlagRepository
 }
 type CfClient struct {
 	config                      Config
@@ -75,6 +77,7 @@ type CfClient struct {
 	routeServiceBinding         api.RouteServiceBindingRepository
 	userProvidedService         api.UserProvidedServiceInstanceRepository
 	finder                      FinderRepository
+	featureFlags                featureflags.FeatureFlagRepository
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -164,6 +167,7 @@ func (client *CfClient) LoadRepositories() {
 	client.stack = stacks.NewCloudControllerStackRepository(repository, gateways.CloudControllerGateway)
 	client.routeServiceBinding = api.NewCloudControllerRouteServiceBindingRepository(repository, gateways.CloudControllerGateway)
 	client.userProvidedService = api.NewCCUserProvidedServiceInstanceRepository(repository, gateways.CloudControllerGateway)
+	client.featureFlags = featureflags.NewCloudControllerFeatureFlagRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -242,4 +246,7 @@ func (client CfClient) UserProvidedService() api.UserProvidedServiceInstanceRepo
 }
 func (client CfClient) Finder() FinderRepository {
 	return client.finder
+}
+func (client CfClient) FeatureFlags() featureflags.FeatureFlagRepository {
+	return client.featureFlags
 }

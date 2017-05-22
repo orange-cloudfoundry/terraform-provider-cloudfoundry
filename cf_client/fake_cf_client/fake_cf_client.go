@@ -3,6 +3,7 @@ package fake_cf_client
 import (
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/apifakes"
+	"code.cloudfoundry.org/cli/cf/api/featureflags"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/organizations/organizationsfakes"
 	"code.cloudfoundry.org/cli/cf/api/quotas"
@@ -162,6 +163,9 @@ func (client FakeCfClient) UserProvidedService() api.UserProvidedServiceInstance
 }
 func (client FakeCfClient) Finder() cf_client.FinderRepository {
 	return client.finder
+}
+func (client FakeCfClient) FeatureFlags() featureflags.FeatureFlagRepository {
+	return &featureflags.CloudControllerFeatureFlagRepository{}
 }
 
 // get Fake call -------
