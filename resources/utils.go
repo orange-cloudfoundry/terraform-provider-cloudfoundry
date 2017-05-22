@@ -2,6 +2,7 @@ package resources
 
 import (
 	"code.cloudfoundry.org/cli/cf/models"
+	"encoding/json"
 	"strings"
 )
 
@@ -26,4 +27,19 @@ func containsSecGroup(s []models.SecurityGroupFields, e models.SecurityGroupFiel
 }
 func IsWebURL(path string) bool {
 	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
+func ConvertParamsToMap(params string) map[string]interface{} {
+	if params == "" {
+		return make(map[string]interface{})
+	}
+	var paramsTemplate interface{}
+	json.Unmarshal([]byte(params), &paramsTemplate)
+	return paramsTemplate.(map[string]interface{})
+}
+func ConvertMapToParams(data map[string]interface{}) string {
+	if len(data) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(data)
+	return string(b)
 }

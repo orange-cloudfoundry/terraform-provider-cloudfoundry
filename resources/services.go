@@ -4,7 +4,6 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
-	"encoding/json"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/viant/toolbox"
@@ -26,20 +25,13 @@ func (c CfServiceResource) resourceObject(d *schema.ResourceData) models.Service
 			GUID:            d.Id(),
 			Name:            d.Get("name").(string),
 			Tags:            tags,
-			Params:          c.convertParams(d.Get("params").(string)),
+			Params:          ConvertParamsToMap(d.Get("params").(string)),
 			SysLogDrainURL:  d.Get("syslog_drain_url").(string),
 			RouteServiceURL: d.Get("route_service_url").(string),
 		},
 	}
 }
-func (c CfServiceResource) convertParams(params string) map[string]interface{} {
-	if params == "" {
-		return make(map[string]interface{})
-	}
-	var paramsTemplate interface{}
-	json.Unmarshal([]byte(params), &paramsTemplate)
-	return paramsTemplate.(map[string]interface{})
-}
+
 func (c CfServiceResource) findPlanGuid(client cf_client.Client, service, plan string) (planGuid string, err error) {
 	planGuid, err = client.Services().FindServicePlanByDescription(resources.ServicePlanDescription{
 		ServiceLabel:    service,
@@ -92,7 +84,7 @@ func (c CfServiceResource) Create(d *schema.ResourceData, meta interface{}) erro
 		err = client.Services().UpdateServiceInstance(
 			d.Id(),
 			planGuid,
-			c.convertParams(d.Get("update_params").(string)),
+			ConvertParamsToMap(d.Get("update_params").(string)),
 			svc.Tags,
 		)
 	}
@@ -207,7 +199,7 @@ func (c CfServiceResource) Update(d *schema.ResourceData, meta interface{}) erro
 	return client.Services().UpdateServiceInstance(
 		d.Id(),
 		planGuid,
-		c.convertParams(d.Get("update_params").(string)),
+		ConvertParamsToMap(d.Get("update_params").(string)),
 		svc.Tags,
 	)
 }

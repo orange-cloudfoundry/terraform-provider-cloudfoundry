@@ -25,6 +25,10 @@ func (c CfRouteResource) resourceObject(d *schema.ResourceData) models.Route {
 		Space: models.SpaceFields{
 			GUID: d.Get("space_id").(string),
 		},
+		ServiceInstance: models.ServiceInstanceFields{
+			GUID:   d.Get("service_id").(string),
+			Params: ConvertParamsToMap(d.Get("service_params").(string)),
+		},
 	}
 }
 func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error {
@@ -54,8 +58,7 @@ func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 	d.SetId(routeCf.GUID)
-
-	return nil
+	return c.updateBinding(client, routeCf, route)
 }
 func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
@@ -77,6 +80,7 @@ func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("path", routeCf.Path)
 	d.Set("domain_id", routeCf.Domain.GUID)
 	d.Set("space_id", routeCf.Space.GUID)
+	d.Set("service_id", routeCf.ServiceInstance.GUID)
 	if routeCf.Port == 0 {
 		d.Set("port", -1)
 		return nil
@@ -123,9 +127,29 @@ func (c CfRouteResource) getPortOption(route models.Route) (port int, randomPort
 	return
 }
 
-//func (c CfRouteResource) updateBinding(client cf_client.Client, routeGuid, serviceGuid string) error {
-//	client.RouteServiceBinding().Bind()
-//}
+func (c CfRouteResource) updateBinding(client cf_client.Client, currentRoute, wantedRoute models.Route) error {
+	if wantedRoute.ServiceInstance.GUID == currentRoute.ServiceInstance.GUID {
+		return nil
+	}
+	if wantedRoute.ServiceInstance.GUID == "" && currentRoute.ServiceInstance.GUID != "" {
+		svc, err := client.Finder().GetServiceFromCf(currentRoute.ServiceInstance.GUID)
+		if err != nil {
+			return err
+		}
+		return client.RouteServiceBinding().Unbind(svc.GUID, currentRoute.GUID, svc.IsUserProvided())
+	}
+
+	svc, err := client.Finder().GetServiceFromCf(wantedRoute.ServiceInstance.GUID)
+	if err != nil {
+		return err
+	}
+	return client.RouteServiceBinding().Bind(
+		svc.GUID,
+		wantedRoute.GUID,
+		svc.IsUserProvided(),
+		ConvertMapToParams(wantedRoute.ServiceInstance.Params),
+	)
+}
 func (c CfRouteResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	route := c.resourceObject(d)
@@ -142,13 +166,8 @@ func (c CfRouteResource) Update(d *schema.ResourceData, meta interface{}) error 
 		d.SetId("")
 		return nil
 	}
-	if err := c.Delete(d, meta); err != nil {
-		return err
-	}
-	if err := c.Create(d, meta); err != nil {
-		return err
-	}
-	return nil
+
+	return c.updateBinding(client, routeCf, route)
 }
 func (c CfRouteResource) Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
