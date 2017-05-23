@@ -8,18 +8,22 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 - [Quotas](#quotas) (Space and Organization ones)
 - [Security groups](#security-groups) (On space, staging or running)
 - [Buildpacks](#buildpacks)
+- [Feature flags](#feature-flags)
+- [Services](#services)
+- [Domains](#domains)
+- [Routes](#routes)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
 
 ## Installations
 
-**Requirements:** You need, of course, terraform (**>=0.7**) which is available here: https://www.terraform.io/downloads.html
+**Requirements:** You need, of course, terraform (**>=0.8**) which is available here: https://www.terraform.io/downloads.html
 
 ### Automatic
 
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION=v0.5.6"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION=v0.6.0"
 ```
 
 #### via curl
@@ -198,6 +202,117 @@ resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
 - **enabled**: *(Optional, default: `true`)* Set to `false` to disable the buildpack to be used for staging.
 - **locked**: *(Optional, default: `false`)* Set to `true` to lock the buildpack to prevent updates.
 
+### Feature flags
+
+```tf
+resource "cloudfoundry_feature_flags" "feature_flags" {
+  diego_docker = true
+  custom_flag {
+    name = "my_flag"
+    enabled = true
+  }
+}
+```
+List of default feature flags:
+- **user_org_creation**: *(Optional, default: `false`)*
+- **private_domain_creation**: *(Optional, default: `true`)*
+- **app_bits_upload**: *(Optional, default: `true`)*
+- **app_scaling**: *(Optional, default: `true`)*
+- **route_creation**: *(Optional, default: `true`)*
+- **service_instance_creation**: *(Optional, default: `true`)*
+- **diego_docker**: *(Optional, default: `false`)*
+- **set_roles_by_username**: *(Optional, default: `true`)*
+- **unset_roles_by_username**: *(Optional, default: `true`)*
+- **task_creation**: *(Optional, default: `false`)*
+- **env_var_visibility**: *(Optional, default: `true`)*
+- **space_scoped_private_broker_creation**: *(Optional, default: `true`)*
+- **space_developer_env_var_visibility**: *(Optional, default: `true`)*
+
+Custom flags made for feature flags not in the default resource:
+- **custom_flag**: *(Optional, default: `null`)* Add cutom feature flags as many as you need: 
+  - **name**: (**Required**) Name of the feature
+  - **enabled**: (**Required**) Set to `true` to enable the feature in your cloud foundry.
+
+### Services
+
+Service from marketplace:
+
+```tf
+resource "cloudfoundry_service" "svc_db" {
+  name = "my-db"
+  space_id = "${cloudfoundry_space.space_mysuperspace.id}"
+  service = "p-mysql"
+  plan = "100mb"
+  params = "{ \"my-param\": 1}"
+  update_params = "{ \"my-param\": 1}"
+  tags = [ "tag1", "tag2" ]
+}
+```
+
+An user provided service:
+
+```tf
+resource "cloudfoundry_service" "svc_ups" {
+  name = "my-ups"
+  space_id = "${cloudfoundry_space.space_mysuperspace.id}"
+  user_provided = true
+  params = "{ \"my-credential\": 1}"
+  route_service_url = "http://my.route.com"
+  syslog_drain_url = "http://my.syslog.com"
+  tags = [ "tag1", "tag2" ]
+}
+```
+
+- **name**: (**Required**) Name of your service.
+- **space_id**: (**Required**) Space id created from resource [cloudfoundry_space](#spaces) to register service inside.
+- **user_provided**: *(Optional, default: `false`)* Set to `true` to create an user provided service. **Note**: `service` and `plan` params will not be used.
+- **params**: *(Optional, default: `null`)* Must be json, if it's an user provided service it will be credential for your service instead it will be params sent to service broker when creating service.
+- **update_params**: *(Optional, default: `null`)* Must be json, Params sent to service broker when updating service.
+- **tags**: *(Optional, default: `null`)* list of tags for your service.
+- **service**: (**Required when not user provided service**) name of service from marketplace.
+- **plan**: (**Required when not user provided service**) name of the plan to use.
+- **route_service_url**: *(Optional, default: `null`)* Only works for user provided, an url to create a [route service](https://docs.cloudfoundry.org/services/route-services.html)
+- **syslog_drain_url**: *(Optional, default: `null`)* Only works for user provided, an url to drain logs as a service on an app.
+
+### Domains
+
+```tf
+resource "cloudfoundry_domain" "domain_mydomain" {
+  name = "my.domain.com"
+  org_owner_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+  router_group = "default-router"
+  orgs_shared_id = ["${cloudfoundry_organization.org_mysecondorg.id}"]
+  shared = false
+}
+```
+
+- **name**: (**Required**) Your domain name.
+- **org_owner_id**: (**Required if not shared**) Organization id created from resource which owned the domain [cloudfoundry_organization](#organizations).
+- **orgs_shared_id**: *(Optional, default: `null`)* Set of organization id which can have access to domain. **Note**: Only can used when not a shared domain
+- **router_group**: *(Optional, default: `null`)* Routes for this domain will be configured only on the specified router group. **Note**: Only when when it's a shared domain
+- **shared**: *(Optional, default: `false`)* If `True` this domain will be a shared domain.
+
+### Routes
+
+```tf
+resource "cloudfoundry_route" "route_superroute" {
+  hostname = "superroute"
+  space_id = "${cloudfoundry_space.space_mysuperspace.id}"
+  domain_id = "${cloudfoundry_domain.domain_mydomain.id}"
+  port = -1
+  path = ""
+  service_id = "${cloudfoundry_service.svc_ups.id}"
+  service_params = "{ \"my-param\": 1}"
+}
+```
+
+- **name**: (**Required**) Your hostname.
+- **domain_id**: (**Required**) Domain id created from resource [domains](#domains).
+- **space_id**: (**Required**) Space id created from resource [cloudfoundry_space](#spaces) to register route inside.
+- **port**: *(Optional, default: `-1`)* Set a port for your route (only works with a tcp domain). **Note**: If `0` a random port will be chose
+- **path**: *(Optional, default: `null`)* Set a path for your route (only works with a http(s) domain).
+- **service_id**: *(Optional, default: `null`)* Set a service id created from resource [services](#services) this will bind a route service on your route. **Note**: It obviously needs a service which is a route service.
+- **service_params**: *(Optional, default: `null`)*  Must be in json, set params to send to service when binding on it.
 
 ### Service brokers
 
