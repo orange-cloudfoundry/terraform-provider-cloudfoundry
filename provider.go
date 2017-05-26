@@ -72,16 +72,17 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"cloudfoundry_organization":   resources.LoadCfResource(resources.CfOrganizationResource{}),
-			"cloudfoundry_space":          resources.LoadCfResource(resources.CfSpaceResource{}),
-			"cloudfoundry_quota":          resources.LoadCfResource(resources.CfQuotaResource{}),
-			"cloudfoundry_sec_group":      resources.LoadCfResource(resources.CfSecurityGroupResource{}),
-			"cloudfoundry_buildpack":      resources.LoadCfResource(resources.CfBuildpackResource{}),
-			"cloudfoundry_service_broker": resources.LoadCfResource(resources.CfServiceBrokerResource{}),
-			"cloudfoundry_domain":         resources.LoadCfResource(resources.CfDomainResource{}),
-			"cloudfoundry_route":          resources.LoadCfResource(resources.CfRouteResource{}),
-			"cloudfoundry_service":        resources.LoadCfResource(resources.CfServiceResource{}),
-			"cloudfoundry_feature_flags":  resources.LoadCfResource(resources.CfFeatureFlagsResource{}),
+			"cloudfoundry_organization":      resources.LoadCfResource(resources.CfOrganizationResource{}),
+			"cloudfoundry_space":             resources.LoadCfResource(resources.CfSpaceResource{}),
+			"cloudfoundry_quota":             resources.LoadCfResource(resources.CfQuotaResource{}),
+			"cloudfoundry_sec_group":         resources.LoadCfResource(resources.CfSecurityGroupResource{}),
+			"cloudfoundry_buildpack":         resources.LoadCfResource(resources.CfBuildpackResource{}),
+			"cloudfoundry_service_broker":    resources.LoadCfResource(resources.CfServiceBrokerResource{}),
+			"cloudfoundry_domain":            resources.LoadCfResource(resources.CfDomainResource{}),
+			"cloudfoundry_route":             resources.LoadCfResource(resources.CfRouteResource{}),
+			"cloudfoundry_service":           resources.LoadCfResource(resources.CfServiceResource{}),
+			"cloudfoundry_feature_flags":     resources.LoadCfResource(resources.CfFeatureFlagsResource{}),
+			"cloudfoundry_isolation_segment": resources.LoadCfResource(resources.CfIsolationSegmentsResource{}),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -93,6 +94,8 @@ func main() {
 }
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := cf_client.Config{
+		AppName:          "tf-provider",
+		AppVersion:       "0.6.0",
 		ApiEndpoint:      d.Get("api_endpoint").(string),
 		Username:         d.Get("username").(string),
 		Password:         d.Get("password").(string),
