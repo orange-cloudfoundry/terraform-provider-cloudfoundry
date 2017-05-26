@@ -2,7 +2,6 @@ package cf_client
 
 import (
 	"code.cloudfoundry.org/cli/cf/api/resources"
-	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"code.cloudfoundry.org/cli/cf/net"
@@ -19,32 +18,28 @@ type FinderRepository interface {
 	GetSpaceFromCf(spaceGuid string) (models.Space, error)
 }
 type Finder struct {
-	config           Config
-	ccGateway        net.Gateway
-	endpointStrategy apistrat.EndpointStrategy
+	config    Config
+	ccGateway net.Gateway
 }
 
-func NewFinderRepository(config Config, ccGateway net.Gateway, endpointStrategy apistrat.EndpointStrategy) FinderRepository {
+func NewFinderRepository(config Config, ccGateway net.Gateway) FinderRepository {
 	return &Finder{
-		config:           config,
-		ccGateway:        ccGateway,
-		endpointStrategy: endpointStrategy,
+		config:    config,
+		ccGateway: ccGateway,
 	}
 }
 func (f Finder) GetDomainFromCf(domain models.DomainFields) (models.DomainFields, error) {
 	res := resources.DomainResource{}
 	err := f.ccGateway.GetResource(
-		fmt.Sprintf("%s%s/%s",
+		fmt.Sprintf("%s/v2/private_domains/%s?inline-relations-depth=1",
 			f.config.ApiEndpoint,
-			f.endpointStrategy.PrivateDomainsURL(),
 			domain.GUID,
 		),
 		&res)
 	if err != nil {
 		err = f.ccGateway.GetResource(
-			fmt.Sprintf("%s%s/%s",
+			fmt.Sprintf("%s/v2/shared_domains/%s?inline-relations-depth=1",
 				f.config.ApiEndpoint,
-				f.endpointStrategy.SharedDomainsURL(),
 				domain.GUID,
 			),
 			&res)

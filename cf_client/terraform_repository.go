@@ -8,6 +8,8 @@ import (
 	"sync"
 )
 
+const CLI_VERSION = "2.80.0"
+
 type TerraformRepository struct {
 	configVersion            int
 	target                   string
@@ -27,6 +29,8 @@ type TerraformRepository struct {
 	locale                   string
 	minCLIVersion            string
 	minRecommendedCLIVersion string
+	uaaOAuthClient           string
+	uaaOAuthClientSecret     string
 	space                    models.SpaceFields
 	org                      models.OrganizationFields
 	mutex                    *sync.RWMutex
@@ -389,6 +393,36 @@ func (c *TerraformRepository) SetPluginRepo(repo models.PluginRepo) {
 
 func (c *TerraformRepository) UnSetPluginRepo(index int) {
 
+}
+func (c *TerraformRepository) SetCLIVersion(version string) {
+
+}
+func (c *TerraformRepository) SetUAAOAuthClient(clientID string) {
+	c.write(func() {
+		c.uaaOAuthClient = clientID
+	})
+}
+
+func (c *TerraformRepository) SetUAAOAuthClientSecret(clientID string) {
+	c.write(func() {
+		c.uaaOAuthClientSecret = clientID
+	})
+}
+func (c *TerraformRepository) UAAOAuthClient() (clientID string) {
+	c.read(func() {
+		clientID = c.uaaOAuthClient
+	})
+	return
+}
+
+func (c *TerraformRepository) UAAOAuthClientSecret() (clientID string) {
+	c.read(func() {
+		clientID = c.uaaOAuthClientSecret
+	})
+	return
+}
+func (c *TerraformRepository) CLIVersion() string {
+	return CLI_VERSION
 }
 func (c *TerraformRepository) read(cb func()) {
 	c.mutex.RLock()

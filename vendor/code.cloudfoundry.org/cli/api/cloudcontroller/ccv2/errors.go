@@ -2,70 +2,14 @@ package ccv2
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 )
 
-// CCErrorResponse represents a generic Cloud Controller V2 error response.
-type CCErrorResponse struct {
-	Code        int    `json:"code"`
-	Description string `json:"description"`
-	ErrorCode   string `json:"error_code"`
-}
-
-// UnauthorizedError is returned when the client does not have the correct
-// permissions to execute the request.
-type UnauthorizedError struct {
-	Message string
-}
-
-func (e UnauthorizedError) Error() string {
-	return e.Message
-}
-
-// InvalidAuthTokenError is returned when the client has an invalid
-// authorization header.
-type InvalidAuthTokenError struct {
-	Message string
-}
-
-func (e InvalidAuthTokenError) Error() string {
-	return e.Message
-}
-
-// ForbiddenError is returned when the client is forbidden from executing the
-// request.
-type ForbiddenError struct {
-	Message string
-}
-
-func (e ForbiddenError) Error() string {
-	return e.Message
-}
-
-// ResourceNotFoundError is returned when the client requests a resource that
-// does not exist or does not have permissions to see.
-type ResourceNotFoundError struct {
-	Message string
-}
-
-func (e ResourceNotFoundError) Error() string {
-	return e.Message
-}
-
-// UnexpectedResponseError is returned when the client gets an error that has
-// not been accounted for.
-type UnexpectedResponseError struct {
-	ResponseCode int
-	CCErrorResponse
-}
-
-func (e UnexpectedResponseError) Error() string {
-	return fmt.Sprintf("Unexpected Response\nResponse Code: %s\nCC Code: %i\nCC ErrorCode: %s\nDescription: %s", e.ResponseCode, e.Code, e.ErrorCode, e.Description)
-}
-
+// errorWrapper is the wrapper that converts responses with 4xx and 5xx status
+// codes to an error.
 type errorWrapper struct {
 	connection cloudcontroller.Connection
 }
@@ -74,42 +18,73 @@ func newErrorWrapper() *errorWrapper {
 	return new(errorWrapper)
 }
 
+// Wrap wraps a Cloud Controller connection in this error handling wrapper.
 func (e *errorWrapper) Wrap(innerconnection cloudcontroller.Connection) cloudcontroller.Connection {
 	e.connection = innerconnection
 	return e
 }
 
-func (e *errorWrapper) Make(passedRequest cloudcontroller.Request, passedResponse *cloudcontroller.Response) error {
-	err := e.connection.Make(passedRequest, passedResponse)
+// Make converts RawHTTPStatusError, which represents responses with 4xx and
+// 5xx status codes, to specific errors.
+func (e *errorWrapper) Make(request *http.Request, passedResponse *cloudcontroller.Response) error {
+	err := e.connection.Make(request, passedResponse)
 
-	if rawErr, ok := err.(cloudcontroller.RawCCError); ok {
-		return e.convert(rawErr)
+	if rawHTTPStatusErr, ok := err.(ccerror.RawHTTPStatusError); ok {
+		return convert(rawHTTPStatusErr)
 	}
 	return err
 }
 
-func (e errorWrapper) convert(rawErr cloudcontroller.RawCCError) error {
-	var errorResponse CCErrorResponse
-	err := json.Unmarshal(rawErr.RawResponse, &errorResponse)
+func convert(rawHTTPStatusErr ccerror.RawHTTPStatusError) error {
+	// Try to unmarshal the raw error into a CC error. If unmarshaling fails,
+	// return the raw error.
+	var errorResponse ccerror.V2ErrorResponse
+	err := json.Unmarshal(rawHTTPStatusErr.RawResponse, &errorResponse)
 	if err != nil {
-		return err
+		if rawHTTPStatusErr.StatusCode == http.StatusNotFound {
+			return ccerror.NotFoundError{Message: string(rawHTTPStatusErr.RawResponse)}
+		}
+		return rawHTTPStatusErr
 	}
 
-	switch rawErr.StatusCode {
-	case http.StatusUnauthorized:
-		if errorResponse.ErrorCode == "CF-InvalidAuthToken" {
-			return InvalidAuthTokenError{Message: errorResponse.Description}
-		}
-		return UnauthorizedError{Message: errorResponse.Description}
-	case http.StatusForbidden:
-		return ForbiddenError{Message: errorResponse.Description}
-	case http.StatusNotFound:
-		return ResourceNotFoundError{Message: errorResponse.Description}
+	switch rawHTTPStatusErr.StatusCode {
+	case http.StatusBadRequest: // 400
+		return handleBadRequest(errorResponse)
+	case http.StatusUnauthorized: // 401
+		return handleUnauthorized(errorResponse)
+	case http.StatusForbidden: // 403
+		return ccerror.ForbiddenError{Message: errorResponse.Description}
+	case http.StatusNotFound: // 404
+		return ccerror.ResourceNotFoundError{Message: errorResponse.Description}
+	case http.StatusUnprocessableEntity: // 422
+		return ccerror.UnprocessableEntityError{Message: errorResponse.Description}
 	default:
-		return UnexpectedResponseError{
-			ResponseCode:    rawErr.StatusCode,
-			CCErrorResponse: errorResponse,
+		return ccerror.V2UnexpectedResponseError{
+			V2ErrorResponse: errorResponse,
+			RequestIDs:      rawHTTPStatusErr.RequestIDs,
+			ResponseCode:    rawHTTPStatusErr.StatusCode,
 		}
 	}
 	return nil
+}
+
+func handleBadRequest(errorResponse ccerror.V2ErrorResponse) error {
+	switch errorResponse.ErrorCode {
+	case "CF-AppStoppedStatsError":
+		return ccerror.ApplicationStoppedStatsError{Message: errorResponse.Description}
+	case "CF-InstancesError":
+		return ccerror.InstancesError{Message: errorResponse.Description}
+	case "CF-NotStaged":
+		return ccerror.NotStagedError{Message: errorResponse.Description}
+	default:
+		return ccerror.BadRequestError{Message: errorResponse.Description}
+	}
+}
+
+func handleUnauthorized(errorResponse ccerror.V2ErrorResponse) error {
+	if errorResponse.ErrorCode == "CF-InvalidAuthToken" {
+		return ccerror.InvalidAuthTokenError{Message: errorResponse.Description}
+	}
+
+	return ccerror.UnauthorizedError{Message: errorResponse.Description}
 }

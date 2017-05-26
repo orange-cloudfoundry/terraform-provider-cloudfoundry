@@ -1,6 +1,8 @@
 package cf_client
 
 type Config struct {
+	AppName          string
+	AppVersion       string
 	ApiEndpoint      string
 	SkipInsecureSSL  bool
 	Username         string

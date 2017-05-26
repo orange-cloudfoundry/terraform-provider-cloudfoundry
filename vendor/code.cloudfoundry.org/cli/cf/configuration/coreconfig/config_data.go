@@ -23,11 +23,12 @@ type Data struct {
 	Target                   string
 	APIVersion               string
 	AuthorizationEndpoint    string
-	LoggregatorEndPoint      string
 	DopplerEndPoint          string
 	UaaEndpoint              string
 	RoutingAPIEndpoint       string
 	AccessToken              string
+	UAAOAuthClient           string
+	UAAOAuthClientSecret     string
 	SSHOAuthClient           string
 	RefreshToken             string
 	OrganizationFields       models.OrganizationFields
@@ -43,7 +44,12 @@ type Data struct {
 }
 
 func NewData() *Data {
-	return new(Data)
+	data := new(Data)
+
+	data.UAAOAuthClient = "cf"
+	data.UAAOAuthClientSecret = ""
+
+	return data
 }
 
 func (d *Data) JSONMarshalV3() ([]byte, error) {

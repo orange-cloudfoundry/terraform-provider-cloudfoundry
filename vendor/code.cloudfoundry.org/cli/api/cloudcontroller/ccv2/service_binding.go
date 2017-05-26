@@ -2,9 +2,9 @@ package ccv2
 
 import (
 	"encoding/json"
-	"net/http"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2/internal"
 )
 
@@ -29,57 +29,42 @@ func (serviceBinding *ServiceBinding) UnmarshalJSON(data []byte) error {
 
 // GetServiceBindings returns back a list of Service Bindings based off of the
 // provided queries.
-func (client *CloudControllerClient) GetServiceBindings(queries []Query) ([]ServiceBinding, Warnings, error) {
-	request := cloudcontroller.NewRequest(
-		internal.ServiceBindingsRequest,
-		nil,
-		nil,
-		FormatQueryParameters(queries),
-	)
-
-	allServiceBindingsList := []ServiceBinding{}
-	allWarningsList := Warnings{}
-
-	for {
-		var serviceBindings []ServiceBinding
-		wrapper := PaginatedWrapper{
-			Resources: &serviceBindings,
-		}
-		response := cloudcontroller.Response{
-			Result: &wrapper,
-		}
-
-		err := client.connection.Make(request, &response)
-		allWarningsList = append(allWarningsList, response.Warnings...)
-		if err != nil {
-			return nil, allWarningsList, err
-		}
-
-		allServiceBindingsList = append(allServiceBindingsList, serviceBindings...)
-
-		if wrapper.NextURL == "" {
-			break
-		}
-		request = cloudcontroller.NewRequestFromURI(
-			wrapper.NextURL,
-			http.MethodGet,
-			nil,
-		)
+func (client *Client) GetServiceBindings(queries []Query) ([]ServiceBinding, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetServiceBindingsRequest,
+		Query:       FormatQueryParameters(queries),
+	})
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return allServiceBindingsList, allWarningsList, nil
+	var fullBindingsList []ServiceBinding
+	warnings, err := client.paginate(request, ServiceBinding{}, func(item interface{}) error {
+		if binding, ok := item.(ServiceBinding); ok {
+			fullBindingsList = append(fullBindingsList, binding)
+		} else {
+			return ccerror.UnknownObjectInListError{
+				Expected:   ServiceBinding{},
+				Unexpected: item,
+			}
+		}
+		return nil
+	})
+
+	return fullBindingsList, warnings, err
 }
 
 // DeleteServiceBinding will destroy the requested Service Binding.
-func (client *CloudControllerClient) DeleteServiceBinding(serviceBindingGUID string) (Warnings, error) {
-	request := cloudcontroller.NewRequest(
-		internal.DeleteServiceBindingRequest,
-		map[string]string{"service_binding_guid": serviceBindingGUID},
-		nil,
-		nil,
-	)
+func (client *Client) DeleteServiceBinding(serviceBindingGUID string) (Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.DeleteServiceBindingRequest,
+		URIParams:   map[string]string{"service_binding_guid": serviceBindingGUID},
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	var response cloudcontroller.Response
-	err := client.connection.Make(request, &response)
+	err = client.connection.Make(request, &response)
 	return response.Warnings, err
 }

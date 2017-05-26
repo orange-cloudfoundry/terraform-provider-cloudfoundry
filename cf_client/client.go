@@ -2,6 +2,10 @@ package cf_client
 
 import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
+	ccWrapper "code.cloudfoundry.org/cli/api/cloudcontroller/wrapper"
+	"code.cloudfoundry.org/cli/api/uaa"
+	uaaWrapper "code.cloudfoundry.org/cli/api/uaa/wrapper"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
@@ -14,13 +18,13 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spacequotas"
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/stacks"
-	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/net"
 	"code.cloudfoundry.org/cli/cf/trace"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"io/ioutil"
+	"time"
 )
 
 type Client interface {
@@ -46,10 +50,10 @@ type Client interface {
 	RoutingAPI() api.RoutingAPIRepository
 	Route() api.RouteRepository
 	Stack() stacks.CloudControllerStackRepository
-	EndpointStrategy() apistrat.EndpointStrategy
 	RouteServiceBinding() api.RouteServiceBindingRepository
 	UserProvidedService() api.UserProvidedServiceInstanceRepository
 	FeatureFlags() featureflags.FeatureFlagRepository
+	CCv3Client() *ccv3.Client
 }
 type CfClient struct {
 	config                      Config
@@ -73,11 +77,11 @@ type CfClient struct {
 	routingApi                  api.RoutingAPIRepository
 	route                       api.RouteRepository
 	stack                       stacks.CloudControllerStackRepository
-	endpointStrategy            apistrat.EndpointStrategy
 	routeServiceBinding         api.RouteServiceBindingRepository
 	userProvidedService         api.UserProvidedServiceInstanceRepository
 	finder                      FinderRepository
 	featureFlags                featureflags.FeatureFlagRepository
+	ccv3Client                  *ccv3.Client
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -89,26 +93,35 @@ func NewCfClient(config Config) (Client, error) {
 	return cfClient, err
 }
 func (client *CfClient) Init() error {
-	ccClient := ccv2.NewCloudControllerClient()
-	_, err := ccClient.TargetCF(client.config.Target(), client.config.SkipSSLValidation())
+
+	ccClient := ccv2.NewClient(ccv2.Config{
+		AppName:            client.config.AppName,
+		AppVersion:         client.config.AppVersion,
+		JobPollingInterval: time.Duration(2) * time.Second,
+		JobPollingTimeout:  time.Duration(10) * time.Second,
+	})
+	_, err := ccClient.TargetCF(ccv2.TargetSettings{
+		DialTimeout:       time.Duration(1) * time.Second,
+		URL:               client.config.Target(),
+		SkipSSLValidation: client.config.SkipSSLValidation(),
+	})
 	if err != nil {
 		return err
 	}
-	client.endpointStrategy = apistrat.NewEndpointStrategy("2.80.0")
-
 	repository := NewTerraformRepository()
 	repository.SetAPIEndpoint(client.config.ApiEndpoint)
 	repository.SetAPIVersion(ccClient.APIVersion())
 	repository.SetAsyncTimeout(uint(30))
 	repository.SetAuthenticationEndpoint(ccClient.AuthorizationEndpoint())
 	repository.SetDopplerEndpoint(ccClient.DopplerEndpoint())
-	repository.SetLoggregatorEndpoint(ccClient.LoggregatorEndpoint())
 	repository.SetRoutingAPIEndpoint(ccClient.RoutingEndpoint())
 	repository.SetSSLDisabled(client.config.SkipInsecureSSL)
 	repository.SetSSHOAuthClient(client.config.ClientID())
 	repository.SetAccessToken(client.config.AccessToken())
 	repository.SetRefreshToken(client.config.RefreshToken())
 	repository.SetUaaEndpoint(ccClient.TokenEndpoint())
+	repository.SetUAAOAuthClient("cf")
+	repository.SetUAAOAuthClientSecret("")
 	repository.SetLocale(client.config.Locale)
 	i18n.T = i18n.Init(repository)
 	//Retry Wrapper
@@ -119,9 +132,49 @@ func (client *CfClient) Init() error {
 	)
 
 	client.gateways = gateways
-	client.Authenticate()
+	err = client.Authenticate()
+	if err != nil {
+		return err
+	}
 	client.LoadRepositories()
 	client.LoadDecrypter()
+	client.LoadCCv3()
+	return nil
+}
+func (client *CfClient) LoadCCv3() error {
+	config := client.gateways.Config
+	ccWrappers := []ccv3.ConnectionWrapper{}
+	authWrapper := ccWrapper.NewUAAAuthentication(nil, config)
+	ccWrappers = append(ccWrappers, authWrapper)
+	ccWrappers = append(ccWrappers, ccWrapper.NewRetryRequest(2))
+
+	ccClient := ccv3.NewClient(ccv3.Config{
+		AppName:    client.config.AppName,
+		AppVersion: client.config.AppVersion,
+		Wrappers:   ccWrappers,
+	})
+	_, err := ccClient.TargetCF(ccv3.TargetSettings{
+		DialTimeout:       time.Duration(1) * time.Second,
+		URL:               client.config.Target(),
+		SkipSSLValidation: client.config.SkipSSLValidation(),
+	})
+	if err != nil {
+		return err
+	}
+	uaaClient := uaa.NewClient(uaa.Config{
+		AppName:           client.config.AppName,
+		AppVersion:        client.config.AppVersion,
+		ClientID:          "cf",
+		ClientSecret:      "",
+		DialTimeout:       time.Duration(1) * time.Second,
+		SkipSSLValidation: client.config.SkipSSLValidation(),
+		URL:               ccClient.UAA(),
+	})
+	uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(uaaClient, config))
+	uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
+
+	authWrapper.SetClient(uaaClient)
+	client.ccv3Client = ccClient
 	return nil
 }
 func (client *CfClient) Authenticate() error {
@@ -136,6 +189,7 @@ func (client *CfClient) Authenticate() error {
 	)
 	err := uaaRepo.Authenticate(map[string]string{"username": client.config.Username, "password": client.config.Password})
 	if err != nil {
+		panic(err)
 		return err
 	}
 	return nil
@@ -146,7 +200,7 @@ func (client *CfClient) LoadDecrypter() {
 func (client *CfClient) LoadRepositories() {
 	gateways := client.gateways
 	repository := gateways.Config
-	client.finder = NewFinderRepository(client.config, gateways.CloudControllerGateway, client.endpointStrategy)
+	client.finder = NewFinderRepository(client.config, gateways.CloudControllerGateway)
 	client.organizations = organizations.NewCloudControllerOrganizationRepository(repository, gateways.CloudControllerGateway)
 	client.spaces = spaces.NewCloudControllerSpaceRepository(repository, gateways.CloudControllerGateway)
 	client.securityGroups = securitygroups.NewSecurityGroupRepo(repository, gateways.CloudControllerGateway)
@@ -161,7 +215,7 @@ func (client *CfClient) LoadRepositories() {
 	client.securityGroupsStagingBinder = secgroupstag.NewSecurityGroupsRepo(repository, gateways.CloudControllerGateway)
 	client.servicePlans = api.NewCloudControllerServicePlanRepository(repository, gateways.CloudControllerGateway)
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
-	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway, client.endpointStrategy)
+	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway)
 	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
 	client.route = api.NewCloudControllerRouteRepository(repository, gateways.CloudControllerGateway)
 	client.stack = stacks.NewCloudControllerStackRepository(repository, gateways.CloudControllerGateway)
@@ -235,9 +289,6 @@ func (client CfClient) Route() api.RouteRepository {
 func (client CfClient) Stack() stacks.CloudControllerStackRepository {
 	return client.stack
 }
-func (client CfClient) EndpointStrategy() apistrat.EndpointStrategy {
-	return client.endpointStrategy
-}
 func (client CfClient) RouteServiceBinding() api.RouteServiceBindingRepository {
 	return client.routeServiceBinding
 }
@@ -249,4 +300,7 @@ func (client CfClient) Finder() FinderRepository {
 }
 func (client CfClient) FeatureFlags() featureflags.FeatureFlagRepository {
 	return client.featureFlags
+}
+func (client CfClient) CCv3Client() *ccv3.Client {
+	return client.ccv3Client
 }

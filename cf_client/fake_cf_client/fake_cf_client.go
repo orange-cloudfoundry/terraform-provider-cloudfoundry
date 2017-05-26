@@ -1,6 +1,7 @@
 package fake_cf_client
 
 import (
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/apifakes"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
@@ -21,7 +22,6 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spaces/spacesfakes"
 	"code.cloudfoundry.org/cli/cf/api/stacks"
-	apistrat "code.cloudfoundry.org/cli/cf/api/strategy"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption/fake_encryption"
@@ -152,9 +152,7 @@ func (client FakeCfClient) Gateways() cf_client.CloudFoundryGateways {
 func (client FakeCfClient) Stack() stacks.CloudControllerStackRepository {
 	return stacks.CloudControllerStackRepository{}
 }
-func (client FakeCfClient) EndpointStrategy() apistrat.EndpointStrategy {
-	return apistrat.NewEndpointStrategy("2.80.0")
-}
+
 func (client FakeCfClient) RouteServiceBinding() api.RouteServiceBindingRepository {
 	return client.routeServiceBinding
 }
@@ -166,6 +164,9 @@ func (client FakeCfClient) Finder() cf_client.FinderRepository {
 }
 func (client FakeCfClient) FeatureFlags() featureflags.FeatureFlagRepository {
 	return &featureflags.CloudControllerFeatureFlagRepository{}
+}
+func (client FakeCfClient) CCv3Client() *ccv3.Client {
+	return &ccv3.Client{}
 }
 
 // get Fake call -------

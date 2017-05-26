@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/cli/cf"
 	"code.cloudfoundry.org/cli/cf/api/appevents"
 	api_appfiles "code.cloudfoundry.org/cli/cf/api/appfiles"
 	"code.cloudfoundry.org/cli/cf/api/appinstances"
@@ -27,16 +26,11 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spacequotas"
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/stacks"
-	"code.cloudfoundry.org/cli/cf/api/strategy"
 	"code.cloudfoundry.org/cli/cf/appfiles"
 	"code.cloudfoundry.org/cli/cf/configuration/coreconfig"
 	"code.cloudfoundry.org/cli/cf/net"
 	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
-	"code.cloudfoundry.org/cli/cf/v3/repository"
-	"github.com/blang/semver"
-	v3client "github.com/cloudfoundry/go-ccapi/v3/client"
-	"github.com/cloudfoundry/loggregator_consumer"
 	"github.com/cloudfoundry/noaa/consumer"
 )
 
@@ -80,15 +74,11 @@ type RepositoryLocator struct {
 	featureFlagRepo                 featureflags.FeatureFlagRepository
 	environmentVariableGroupRepo    environmentvariablegroups.Repository
 	copyAppSourceRepo               copyapplicationsource.Repository
-
-	v3Repository repository.Repository
 }
 
 const noaaRetryDefaultTimeout = 5 * time.Second
 
 func NewRepositoryLocator(config coreconfig.ReadWriter, gatewaysByName map[string]net.Gateway, logger trace.Printer, envDialTimeout string) (loc RepositoryLocator) {
-	strategy := strategy.NewEndpointStrategy(config.APIVersion())
-
 	cloudControllerGateway := gatewaysByName["cloud-controller"]
 	routingAPIGateway := gatewaysByName["routing-api"]
 	uaaGateway := gatewaysByName["uaa"]
@@ -99,19 +89,17 @@ func NewRepositoryLocator(config coreconfig.ReadWriter, gatewaysByName map[strin
 	uaaGateway.SetTokenRefresher(loc.authRepo)
 
 	loc.appBitsRepo = applicationbits.NewCloudControllerApplicationBitsRepository(config, cloudControllerGateway)
-	loc.appEventsRepo = appevents.NewCloudControllerAppEventsRepository(config, cloudControllerGateway, strategy)
+	loc.appEventsRepo = appevents.NewCloudControllerAppEventsRepository(config, cloudControllerGateway)
 	loc.appFilesRepo = api_appfiles.NewCloudControllerAppFilesRepository(config, cloudControllerGateway)
 	loc.appRepo = applications.NewCloudControllerRepository(config, cloudControllerGateway)
 	loc.appSummaryRepo = NewCloudControllerAppSummaryRepository(config, cloudControllerGateway)
 	loc.appInstancesRepo = appinstances.NewCloudControllerAppInstancesRepository(config, cloudControllerGateway)
 	loc.authTokenRepo = NewCloudControllerServiceAuthTokenRepository(config, cloudControllerGateway)
 	loc.curlRepo = NewCloudControllerCurlRepository(config, cloudControllerGateway)
-	loc.domainRepo = NewCloudControllerDomainRepository(config, cloudControllerGateway, strategy)
+	loc.domainRepo = NewCloudControllerDomainRepository(config, cloudControllerGateway)
 	loc.endpointRepo = NewEndpointRepository(cloudControllerGateway)
 
 	tlsConfig := net.NewTLSConfig([]tls.Certificate{}, config.IsSSLDisabled())
-
-	apiVersion, _ := semver.Make(config.APIVersion())
 
 	var noaaRetryTimeout time.Duration
 	convertedTime, err := strconv.Atoi(envDialTimeout)
@@ -121,15 +109,9 @@ func NewRepositoryLocator(config coreconfig.ReadWriter, gatewaysByName map[strin
 		noaaRetryTimeout = time.Duration(convertedTime) * 3 * time.Second
 	}
 
-	if apiVersion.GTE(cf.NoaaMinimumAPIVersion) {
-		consumer := consumer.New(config.DopplerEndpoint(), tlsConfig, http.ProxyFromEnvironment)
-		consumer.SetDebugPrinter(terminal.DebugPrinter{Logger: logger})
-		loc.logsRepo = logs.NewNoaaLogsRepository(config, consumer, loc.authRepo, noaaRetryTimeout)
-	} else {
-		consumer := loggregator_consumer.New(config.LoggregatorEndpoint(), tlsConfig, http.ProxyFromEnvironment)
-		consumer.SetDebugPrinter(terminal.DebugPrinter{Logger: logger})
-		loc.logsRepo = logs.NewLoggregatorLogsRepository(config, consumer, loc.authRepo)
-	}
+	consumer := consumer.New(config.DopplerEndpoint(), tlsConfig, http.ProxyFromEnvironment)
+	consumer.SetDebugPrinter(terminal.DebugPrinter{Logger: logger})
+	loc.logsRepo = logs.NewNoaaLogsRepository(config, consumer, loc.authRepo, noaaRetryTimeout)
 
 	loc.organizationRepo = organizations.NewCloudControllerOrganizationRepository(config, cloudControllerGateway)
 	loc.passwordRepo = password.NewCloudControllerRepository(config, uaaGateway)
@@ -158,9 +140,6 @@ func NewRepositoryLocator(config coreconfig.ReadWriter, gatewaysByName map[strin
 	loc.featureFlagRepo = featureflags.NewCloudControllerFeatureFlagRepository(config, cloudControllerGateway)
 	loc.environmentVariableGroupRepo = environmentvariablegroups.NewCloudControllerRepository(config, cloudControllerGateway)
 	loc.copyAppSourceRepo = copyapplicationsource.NewCloudControllerCopyApplicationSourceRepository(config, cloudControllerGateway)
-
-	client := v3client.NewClient(config.APIEndpoint(), config.AuthenticationEndpoint(), config.AccessToken(), config.RefreshToken())
-	loc.v3Repository = repository.NewRepository(config, client)
 
 	return
 }
@@ -498,13 +477,4 @@ func (locator RepositoryLocator) SetCopyApplicationSourceRepository(repo copyapp
 
 func (locator RepositoryLocator) GetCopyApplicationSourceRepository() copyapplicationsource.Repository {
 	return locator.copyAppSourceRepo
-}
-
-func (locator RepositoryLocator) GetV3Repository() repository.Repository {
-	return locator.v3Repository
-}
-
-func (locator RepositoryLocator) SetV3Repository(r repository.Repository) RepositoryLocator {
-	locator.v3Repository = r
-	return locator
 }

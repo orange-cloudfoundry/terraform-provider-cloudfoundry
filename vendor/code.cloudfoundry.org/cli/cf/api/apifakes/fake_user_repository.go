@@ -18,6 +18,15 @@ type FakeUserRepository struct {
 		result1 models.UserFields
 		result2 error
 	}
+	FindAllByUsernameStub        func(username string) (users []models.UserFields, apiErr error)
+	findAllByUsernameMutex       sync.RWMutex
+	findAllByUsernameArgsForCall []struct {
+		username string
+	}
+	findAllByUsernameReturns struct {
+		result1 []models.UserFields
+		result2 error
+	}
 	ListUsersInOrgForRoleStub        func(orgGUID string, role models.Role) ([]models.UserFields, error)
 	listUsersInOrgForRoleMutex       sync.RWMutex
 	listUsersInOrgForRoleArgsForCall []struct {
@@ -35,16 +44,6 @@ type FakeUserRepository struct {
 		role    models.Role
 	}
 	listUsersInOrgForRoleWithNoUAAReturns struct {
-		result1 []models.UserFields
-		result2 error
-	}
-	ListUsersInSpaceForRoleStub        func(spaceGUID string, role models.Role) ([]models.UserFields, error)
-	listUsersInSpaceForRoleMutex       sync.RWMutex
-	listUsersInSpaceForRoleArgsForCall []struct {
-		spaceGUID string
-		role      models.Role
-	}
-	listUsersInSpaceForRoleReturns struct {
 		result1 []models.UserFields
 		result2 error
 	}
@@ -195,6 +194,40 @@ func (fake *FakeUserRepository) FindByUsernameReturns(result1 models.UserFields,
 	}{result1, result2}
 }
 
+func (fake *FakeUserRepository) FindAllByUsername(username string) (users []models.UserFields, apiErr error) {
+	fake.findAllByUsernameMutex.Lock()
+	fake.findAllByUsernameArgsForCall = append(fake.findAllByUsernameArgsForCall, struct {
+		username string
+	}{username})
+	fake.recordInvocation("FindAllByUsername", []interface{}{username})
+	fake.findAllByUsernameMutex.Unlock()
+	if fake.FindAllByUsernameStub != nil {
+		return fake.FindAllByUsernameStub(username)
+	} else {
+		return fake.findAllByUsernameReturns.result1, fake.findAllByUsernameReturns.result2
+	}
+}
+
+func (fake *FakeUserRepository) FindAllByUsernameCallCount() int {
+	fake.findAllByUsernameMutex.RLock()
+	defer fake.findAllByUsernameMutex.RUnlock()
+	return len(fake.findAllByUsernameArgsForCall)
+}
+
+func (fake *FakeUserRepository) FindAllByUsernameArgsForCall(i int) string {
+	fake.findAllByUsernameMutex.RLock()
+	defer fake.findAllByUsernameMutex.RUnlock()
+	return fake.findAllByUsernameArgsForCall[i].username
+}
+
+func (fake *FakeUserRepository) FindAllByUsernameReturns(result1 []models.UserFields, result2 error) {
+	fake.FindAllByUsernameStub = nil
+	fake.findAllByUsernameReturns = struct {
+		result1 []models.UserFields
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeUserRepository) ListUsersInOrgForRole(orgGUID string, role models.Role) ([]models.UserFields, error) {
 	fake.listUsersInOrgForRoleMutex.Lock()
 	fake.listUsersInOrgForRoleArgsForCall = append(fake.listUsersInOrgForRoleArgsForCall, struct {
@@ -260,41 +293,6 @@ func (fake *FakeUserRepository) ListUsersInOrgForRoleWithNoUAAArgsForCall(i int)
 func (fake *FakeUserRepository) ListUsersInOrgForRoleWithNoUAAReturns(result1 []models.UserFields, result2 error) {
 	fake.ListUsersInOrgForRoleWithNoUAAStub = nil
 	fake.listUsersInOrgForRoleWithNoUAAReturns = struct {
-		result1 []models.UserFields
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeUserRepository) ListUsersInSpaceForRole(spaceGUID string, role models.Role) ([]models.UserFields, error) {
-	fake.listUsersInSpaceForRoleMutex.Lock()
-	fake.listUsersInSpaceForRoleArgsForCall = append(fake.listUsersInSpaceForRoleArgsForCall, struct {
-		spaceGUID string
-		role      models.Role
-	}{spaceGUID, role})
-	fake.recordInvocation("ListUsersInSpaceForRole", []interface{}{spaceGUID, role})
-	fake.listUsersInSpaceForRoleMutex.Unlock()
-	if fake.ListUsersInSpaceForRoleStub != nil {
-		return fake.ListUsersInSpaceForRoleStub(spaceGUID, role)
-	} else {
-		return fake.listUsersInSpaceForRoleReturns.result1, fake.listUsersInSpaceForRoleReturns.result2
-	}
-}
-
-func (fake *FakeUserRepository) ListUsersInSpaceForRoleCallCount() int {
-	fake.listUsersInSpaceForRoleMutex.RLock()
-	defer fake.listUsersInSpaceForRoleMutex.RUnlock()
-	return len(fake.listUsersInSpaceForRoleArgsForCall)
-}
-
-func (fake *FakeUserRepository) ListUsersInSpaceForRoleArgsForCall(i int) (string, models.Role) {
-	fake.listUsersInSpaceForRoleMutex.RLock()
-	defer fake.listUsersInSpaceForRoleMutex.RUnlock()
-	return fake.listUsersInSpaceForRoleArgsForCall[i].spaceGUID, fake.listUsersInSpaceForRoleArgsForCall[i].role
-}
-
-func (fake *FakeUserRepository) ListUsersInSpaceForRoleReturns(result1 []models.UserFields, result2 error) {
-	fake.ListUsersInSpaceForRoleStub = nil
-	fake.listUsersInSpaceForRoleReturns = struct {
 		result1 []models.UserFields
 		result2 error
 	}{result1, result2}
@@ -689,12 +687,12 @@ func (fake *FakeUserRepository) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.findByUsernameMutex.RLock()
 	defer fake.findByUsernameMutex.RUnlock()
+	fake.findAllByUsernameMutex.RLock()
+	defer fake.findAllByUsernameMutex.RUnlock()
 	fake.listUsersInOrgForRoleMutex.RLock()
 	defer fake.listUsersInOrgForRoleMutex.RUnlock()
 	fake.listUsersInOrgForRoleWithNoUAAMutex.RLock()
 	defer fake.listUsersInOrgForRoleWithNoUAAMutex.RUnlock()
-	fake.listUsersInSpaceForRoleMutex.RLock()
-	defer fake.listUsersInSpaceForRoleMutex.RUnlock()
 	fake.listUsersInSpaceForRoleWithNoUAAMutex.RLock()
 	defer fake.listUsersInSpaceForRoleWithNoUAAMutex.RUnlock()
 	fake.createMutex.RLock()

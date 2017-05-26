@@ -16,12 +16,12 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/cli/cf"
 	"code.cloudfoundry.org/cli/cf/configuration/coreconfig"
 	"code.cloudfoundry.org/cli/cf/errors"
 	. "code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/terminal"
 	"code.cloudfoundry.org/cli/cf/trace"
+	"code.cloudfoundry.org/cli/version"
 )
 
 const (
@@ -200,7 +200,7 @@ func (gateway Gateway) newRequest(request *http.Request, accessToken string, bod
 	request.Header.Set("accept", "application/json")
 	request.Header.Set("Connection", "close")
 	request.Header.Set("content-type", "application/json")
-	request.Header.Set("User-Agent", "go-cli "+cf.Version+" / "+runtime.GOOS)
+	request.Header.Set("User-Agent", "go-cli "+version.VersionString()+" / "+runtime.GOOS)
 
 	return &Request{HTTPReq: request, SeekableBody: body}
 }
@@ -447,7 +447,10 @@ func (gateway Gateway) doRequest(request *http.Request) (*http.Response, error) 
 
 func makeHTTPTransport(gateway *Gateway) {
 	gateway.transport = &http.Transport{
-		Dial:            (&net.Dialer{Timeout: gateway.DialTimeout}).Dial,
+		Dial: (&net.Dialer{
+			KeepAlive: 30 * time.Second,
+			Timeout:   gateway.DialTimeout,
+		}).Dial,
 		TLSClientConfig: NewTLSConfig(gateway.trustedCerts, gateway.config.IsSSLDisabled()),
 		Proxy:           http.ProxyFromEnvironment,
 	}

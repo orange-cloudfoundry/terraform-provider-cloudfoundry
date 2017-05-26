@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2/internal"
 )
 
@@ -32,20 +33,21 @@ func (domain *Domain) UnmarshalJSON(data []byte) error {
 
 // GetSharedDomain returns the Shared Domain associated with the provided
 // Domain GUID.
-func (client *CloudControllerClient) GetSharedDomain(domainGUID string) (Domain, Warnings, error) {
-	request := cloudcontroller.NewRequest(
-		internal.SharedDomainRequest,
-		map[string]string{"shared_domain_guid": domainGUID},
-		nil,
-		nil,
-	)
+func (client *Client) GetSharedDomain(domainGUID string) (Domain, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetSharedDomainRequest,
+		URIParams:   map[string]string{"shared_domain_guid": domainGUID},
+	})
+	if err != nil {
+		return Domain{}, nil, err
+	}
 
 	var domain Domain
 	response := cloudcontroller.Response{
 		Result: &domain,
 	}
 
-	err := client.connection.Make(request, &response)
+	err = client.connection.Make(request, &response)
 	if err != nil {
 		return Domain{}, response.Warnings, err
 	}
@@ -55,23 +57,76 @@ func (client *CloudControllerClient) GetSharedDomain(domainGUID string) (Domain,
 
 // GetPrivateDomain returns the Private Domain associated with the provided
 // Domain GUID.
-func (client *CloudControllerClient) GetPrivateDomain(domainGUID string) (Domain, Warnings, error) {
-	request := cloudcontroller.NewRequest(
-		internal.PrivateDomainRequest,
-		map[string]string{"private_domain_guid": domainGUID},
-		nil,
-		nil,
-	)
+func (client *Client) GetPrivateDomain(domainGUID string) (Domain, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetPrivateDomainRequest,
+		URIParams:   map[string]string{"private_domain_guid": domainGUID},
+	})
+	if err != nil {
+		return Domain{}, nil, err
+	}
 
 	var domain Domain
 	response := cloudcontroller.Response{
 		Result: &domain,
 	}
 
-	err := client.connection.Make(request, &response)
+	err = client.connection.Make(request, &response)
 	if err != nil {
 		return Domain{}, response.Warnings, err
 	}
 
 	return domain, response.Warnings, nil
+}
+
+// GetSharedDomains returns the global shared domains.
+func (client *Client) GetSharedDomains() ([]Domain, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetSharedDomainsRequest,
+	})
+	if err != nil {
+		return []Domain{}, nil, err
+	}
+
+	fullDomainsList := []Domain{}
+	warnings, err := client.paginate(request, Domain{}, func(item interface{}) error {
+		if domain, ok := item.(Domain); ok {
+			fullDomainsList = append(fullDomainsList, domain)
+		} else {
+			return ccerror.UnknownObjectInListError{
+				Expected:   Domain{},
+				Unexpected: item,
+			}
+		}
+		return nil
+	})
+
+	return fullDomainsList, warnings, err
+}
+
+// GetOrganizationPrivateDomains returns the private domains associated with an organization.
+func (client *Client) GetOrganizationPrivateDomains(orgGUID string, queries []Query) ([]Domain, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetOrganizationPrivateDomainsRequest,
+		Query:       FormatQueryParameters(queries),
+		URIParams:   map[string]string{"organization_guid": orgGUID},
+	})
+	if err != nil {
+		return []Domain{}, nil, err
+	}
+
+	fullDomainsList := []Domain{}
+	warnings, err := client.paginate(request, Domain{}, func(item interface{}) error {
+		if domain, ok := item.(Domain); ok {
+			fullDomainsList = append(fullDomainsList, domain)
+		} else {
+			return ccerror.UnknownObjectInListError{
+				Expected:   Domain{},
+				Unexpected: item,
+			}
+		}
+		return nil
+	})
+
+	return fullDomainsList, warnings, err
 }
