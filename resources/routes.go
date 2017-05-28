@@ -31,6 +31,24 @@ func (c CfRouteResource) resourceObject(d *schema.ResourceData) models.Route {
 		},
 	}
 }
+func (c CfRouteResource) generateUri(route models.Route, protocolOverride string) string {
+	protocol := "https"
+	if route.Domain.RouterGroupGUID != "" {
+		protocol = "tcp"
+	}
+	if protocolOverride != "" {
+		protocol = protocolOverride
+	}
+	port := ""
+	if route.Port != 0 {
+		port = fmt.Sprintf(":%d", route.Port)
+	}
+	path := ""
+	if route.Path != "" {
+		path = "/" + route.Path
+	}
+	return fmt.Sprintf("%s://%s.%s%s%s", protocol, route.Host, route.Domain.Name, port, path)
+}
 func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	route := c.resourceObject(d)
@@ -57,6 +75,7 @@ func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
+	d.Set("uri", c.generateUri(routeCf, d.Get("protocol").(string)))
 	d.SetId(routeCf.GUID)
 	return c.updateBinding(client, routeCf, route)
 }
@@ -81,6 +100,7 @@ func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("domain_id", routeCf.Domain.GUID)
 	d.Set("space_id", routeCf.Space.GUID)
 	d.Set("service_id", routeCf.ServiceInstance.GUID)
+	d.Set("uri", c.generateUri(routeCf, d.Get("protocol").(string)))
 	if routeCf.Port == 0 {
 		d.Set("port", -1)
 		return nil
@@ -208,6 +228,14 @@ func (c CfRouteResource) Schema() map[string]*schema.Schema {
 		"service_params": &schema.Schema{
 			Type:     schema.TypeString,
 			Optional: true,
+		},
+		"protocol": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"uri": &schema.Schema{
+			Type:     schema.TypeString,
+			Computed: true,
 		},
 	}
 }
