@@ -396,3 +396,10 @@ func (c CfSecurityGroupResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+func (c CfSecurityGroupResource) DataSourceSchema() map[string]*schema.Schema {
+	return CreateDataSourceSchema(c)
+}
+func (c CfSecurityGroupResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	fn := CreateDataSourceReadFunc(c)
+	return fn(d, meta)
+}

@@ -238,3 +238,10 @@ func (c CfBuildpackResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+func (c CfBuildpackResource) DataSourceSchema() map[string]*schema.Schema {
+	return CreateDataSourceSchema(c)
+}
+func (c CfBuildpackResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	fn := CreateDataSourceReadFunc(c)
+	return fn(d, meta)
+}

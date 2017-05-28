@@ -642,3 +642,10 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+func (c CfServiceBrokerResource) DataSourceSchema() map[string]*schema.Schema {
+	return CreateDataSourceSchema(c)
+}
+func (c CfServiceBrokerResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	fn := CreateDataSourceReadFunc(c)
+	return fn(d, meta)
+}

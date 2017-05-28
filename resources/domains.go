@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"code.cloudfoundry.org/cli/cf/api/resources"
 	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
 	"fmt"
@@ -300,4 +301,49 @@ func (c CfDomainResource) Schema() map[string]*schema.Schema {
 			ForceNew: true,
 		},
 	}
+}
+func (c CfDomainResource) DataSourceSchema() map[string]*schema.Schema {
+	schemas := CreateDataSourceSchema(c)
+	schemas["name"].Optional = true
+	schemas["name"].Required = false
+	schemas["org_owner_id"].Optional = true
+	schemas["org_owner_id"].Computed = false
+	schemas["first"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+	}
+	return schemas
+}
+func (c CfDomainResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	if !d.Get("first").(bool) {
+		if d.Get("name").(string) == "" {
+			return fmt.Errorf("You must set param 'name' if the param 'first' is to false.")
+		}
+		fn := CreateDataSourceReadFunc(c)
+		return fn(d, meta)
+	}
+	client := meta.(cf_client.Client)
+	orgId := d.Get("org_owner_id").(string)
+	path := "/v2/shared_domains?inline-relations-depth=1"
+	if orgId != "" {
+		path = fmt.Sprintf("/v2/organizations/%s/private_domains", orgId)
+	}
+	err := c.listDomains(client, path, func(domain models.DomainFields) bool {
+		d.SetId(domain.GUID)
+		return false
+	})
+	if err != nil {
+		return err
+	}
+	return c.Read(d, meta)
+}
+func (c CfDomainResource) listDomains(client cf_client.Client, path string, cb func(models.DomainFields) bool) error {
+	gateway := client.Gateways().CloudControllerGateway
+	return gateway.ListPaginatedResources(
+		client.Config().ApiEndpoint,
+		path,
+		resources.DomainResource{},
+		func(resource interface{}) bool {
+			return cb(resource.(resources.DomainResource).ToFields())
+		})
 }

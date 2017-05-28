@@ -85,6 +85,20 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_isolation_segment": resources.LoadCfResource(resources.CfIsolationSegmentsResource{}),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"cloudfoundry_organization":      resources.LoadCfDataSource(resources.CfOrganizationResource{}),
+			"cloudfoundry_space":             resources.LoadCfDataSource(resources.CfSpaceResource{}),
+			"cloudfoundry_quota":             resources.LoadCfDataSource(resources.CfQuotaResource{}),
+			"cloudfoundry_sec_group":         resources.LoadCfDataSource(resources.CfSecurityGroupResource{}),
+			"cloudfoundry_buildpack":         resources.LoadCfDataSource(resources.CfBuildpackResource{}),
+			"cloudfoundry_service_broker":    resources.LoadCfDataSource(resources.CfServiceBrokerResource{}),
+			"cloudfoundry_domain":            resources.LoadCfDataSource(resources.CfDomainResource{}),
+			"cloudfoundry_route":             resources.LoadCfDataSource(resources.CfRouteResource{}),
+			"cloudfoundry_service":           resources.LoadCfDataSource(resources.CfServiceResource{}),
+			"cloudfoundry_isolation_segment": resources.LoadCfDataSource(resources.CfIsolationSegmentsResource{}),
+			"cloudfoundry_stack":             resources.LoadCfDataSource(resources.CfStackResource{}),
+		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
@@ -95,7 +109,7 @@ func main() {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := cf_client.Config{
 		AppName:          "tf-provider",
-		AppVersion:       "0.6.0",
+		AppVersion:       "0.7.0",
 		ApiEndpoint:      d.Get("api_endpoint").(string),
 		Username:         d.Get("username").(string),
 		Password:         d.Get("password").(string),

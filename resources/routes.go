@@ -239,3 +239,10 @@ func (c CfRouteResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+func (c CfRouteResource) DataSourceSchema() map[string]*schema.Schema {
+	return CreateDataSourceSchema(c, "hostname", "domain_id", "path", "port")
+}
+func (c CfRouteResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	fn := CreateDataSourceReadFunc(c)
+	return fn(d, meta)
+}

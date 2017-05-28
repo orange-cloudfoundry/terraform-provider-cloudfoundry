@@ -12,6 +12,8 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 - [Services](#services)
 - [Domains](#domains)
 - [Routes](#routes)
+- [Isolation Segments](#isolation-segments)
+- [Stacks](#stacks)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
 
 ## Installations
@@ -23,7 +25,7 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION=v0.6.0"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.7.0"
 ```
 
 #### via curl
@@ -81,9 +83,11 @@ provider "cloudfoundry" {
 - **user_access_token**: *(Optional, default: `null`, Env Var: `CF_TOKEN`)* The OAuth token used to connect to a Cloud Foundry. (Optional if you use 'username' and 'password')
 - **user_refresh_token**: *(Optional, default: `null`)* The OAuth refresh token used to refresh your token.
 
-## Resources
+## Resources and Data sources
 
 ### Organizations
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_organization" "org_mysuperorg" {
@@ -97,7 +101,21 @@ resource "cloudfoundry_organization" "org_mysuperorg" {
 - **is_system_domain**: *(Optional, default: `false`)* set it to true only if this organization is a system_domain organization, it will prevent deletion on Cloud Foundry.
 - **quota_id**: *(Optional, default: `null`)* Give a quota id (created from resource [cloudfoundry_quota](#quotas)) to set a quota on this org.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_organization" "org_mysuperorg" {
+  name = "mysuperorg"
+}
+```
+
+- **name**: (**Required**) Name of your organization.
+
 ### Spaces
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_space" "space_mysuperspace" {
@@ -110,12 +128,28 @@ resource "cloudfoundry_space" "space_mysuperspace" {
 ```
 
 - **name**: (**Required**) Name of your space.
-- **org_id**: (**Required**) Organization id created from resource [cloudfoundry_organization](#organizations).
+- **org_id**: (**Required**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
 - **allow_ssh**: *(Optional, default: `true`)* Set to `false` to remove ssh access on app instances inside this space.
 - **sec_groups**: *(Optional, default: `null`)* This is a list of security groups id created from [cloudfoundry_sec_group](#security-groups), it will bind each security group on this space.
 - **quota_id**: *(Optional, default: `null`)* Give a quota id (created from resource [cloudfoundry_quota](#quotas)) to set a quota on this space.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_space" "space_mysuperspace" {
+    name = "mysuperspace"
+    org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+```
+
+- **name**: (**Required**) Name of your space.
+- **org_id**: (**Required**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
+
 ### Quotas
+
+#### Resource
 
 **Note**: There is two kinds of quotas inside Cloud Foundry: a space's quota, an organization's quota. This resource is able to find what kind of quota you defined. If you omit *`org_id`* the resource will consider this 
 quota as an organization's quota. With it will consider it's a space's quota.
@@ -135,7 +169,7 @@ resource "cloudfoundry_quota" "quota_for_ahalet" {
 ```
 
 - **name**: (**Required**) Name of your quota.
-- **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
+- **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource or data source [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
 - **total_memory**: *(Optional, default: `20G`)* Total amount of memory a space can have (e.g. 1024M, 1G, 10G).
 - **total_instance_memory**: *(Optional, default: `-1`)* Maximum amount of memory an application instance can have (e.g. 1024M, 1G, 10G). -1 represents an unlimited amount.
 - **routes**: *(Optional, default: `2000`)* Total number of routes that a space can have.
@@ -144,7 +178,23 @@ resource "cloudfoundry_quota" "quota_for_ahalet" {
 - **app_allow_paid_service_plans**: *(Optional, default: `true`)* Can provision instances of paid service plans.
 - **reserved_route_ports**: *(Optional, default: `0`)* Maximum number of routes that may be created with reserved ports in a space.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_quota" "quota_for_ahalet" {
+  name = "quotaAhalet"
+  org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+```
+
+- **name**: (**Required**) Name of your quota.
+- **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource or data source [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
+
 ### Security groups
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
@@ -184,7 +234,21 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
   - **log**: *(Optional, default: `false`)* Set to `true` to enable logging. For more information about how to configure system logs to be sent to a syslog drain, see [Using Log Management Services](https://docs.cloudfoundry.org/devguide/services/log-management.html) topic.
   - **description**: *(Optional, default: `null`)* This is an optional field that contains useful text for operators to manage security group rules. This field is available in Cloud Foundry v238 and later.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
+  name = "mysupersecgroup"
+}
+```
+
+- **name**: (**Required**) Name of your security group.
+
 ### Buildpacks
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
@@ -202,7 +266,21 @@ resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
 - **enabled**: *(Optional, default: `true`)* Set to `false` to disable the buildpack to be used for staging.
 - **locked**: *(Optional, default: `false`)* Set to `true` to lock the buildpack to prevent updates.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
+  name = "mysuperbuildpack"
+}
+```
+
+- **name**: (**Required**) Name of your buildpack.
+
 ### Feature flags
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_feature_flags" "feature_flags" {
@@ -233,7 +311,13 @@ Custom flags made for feature flags not in the default resource:
   - **name**: (**Required**) Name of the feature
   - **enabled**: (**Required**) Set to `true` to enable the feature in your cloud foundry.
 
+#### Data source
+
+**Feature flags cannot be used as data source**
+
 ### Services
+
+#### Resource
 
 Service from marketplace:
 
@@ -264,7 +348,7 @@ resource "cloudfoundry_service" "svc_ups" {
 ```
 
 - **name**: (**Required**) Name of your service.
-- **space_id**: (**Required**) Space id created from resource [cloudfoundry_space](#spaces) to register service inside.
+- **space_id**: (**Required**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register service inside.
 - **user_provided**: *(Optional, default: `false`)* Set to `true` to create an user provided service. **Note**: `service` and `plan` params will not be used.
 - **params**: *(Optional, default: `null`)* Must be json, if it's an user provided service it will be credential for your service instead it will be params sent to service broker when creating service.
 - **update_params**: *(Optional, default: `null`)* Must be json, Params sent to service broker when updating service.
@@ -274,7 +358,25 @@ resource "cloudfoundry_service" "svc_ups" {
 - **route_service_url**: *(Optional, default: `null`)* Only works for user provided, an url to create a [route service](https://docs.cloudfoundry.org/services/route-services.html)
 - **syslog_drain_url**: *(Optional, default: `null`)* Only works for user provided, an url to drain logs as a service on an app.
 
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled, except:
+- `params`
+- `update_params`
+
+```tf
+data "cloudfoundry_service" "svc_ups" {
+  name = "my-ups"
+  space_id = "${cloudfoundry_space.space_mysuperspace.id}"
+}
+```
+
+- **name**: (**Required**) Name of your service.
+- **space_id**: (**Required**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register service inside.
+
 ### Domains
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_domain" "domain_mydomain" {
@@ -287,10 +389,26 @@ resource "cloudfoundry_domain" "domain_mydomain" {
 ```
 
 - **name**: (**Required**) Your domain name.
-- **org_owner_id**: (**Required if not shared**) Organization id created from resource which owned the domain [cloudfoundry_organization](#organizations).
+- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which owned the domain [cloudfoundry_organization](#organizations).
 - **orgs_shared_id**: *(Optional, default: `null`)* Set of organization id which can have access to domain. **Note**: Only can used when not a shared domain
 - **router_group**: *(Optional, default: `null`)* Routes for this domain will be configured only on the specified router group. **Note**: Only when when it's a shared domain
 - **shared**: *(Optional, default: `false`)* If `True` this domain will be a shared domain.
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_domain" "domain_mydomain" {
+  name = "my.domain.com"
+  org_owner_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+  first = false
+}
+```
+
+- **name**: *(Optional if `first` param set to `true`, default: `null`)* Your domain name.
+- **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first domain found in your Cloud Foundry (it will be the first shared domain if `org_owner_id` is not set).
+- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which owned the domain [cloudfoundry_organization](#organizations).
 
 ### Routes
 
@@ -307,14 +425,93 @@ resource "cloudfoundry_route" "route_superroute" {
 ```
 
 - **name**: (**Required**) Your hostname.
-- **domain_id**: (**Required**) Domain id created from resource [domains](#domains).
-- **space_id**: (**Required**) Space id created from resource [cloudfoundry_space](#spaces) to register route inside.
+- **domain_id**: (**Required**) Domain id created from resource or data source [domains](#domains).
+- **space_id**: (**Required**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register route inside.
 - **port**: *(Optional, default: `-1`)* Set a port for your route (only works with a tcp domain). **Note**: If `0` a random port will be chose
 - **path**: *(Optional, default: `null`)* Set a path for your route (only works with a http(s) domain).
-- **service_id**: *(Optional, default: `null`)* Set a service id created from resource [services](#services) this will bind a route service on your route. **Note**: It obviously needs a service which is a route service.
+- **service_id**: *(Optional, default: `null`)* Set a service id created from resource or data source [services](#services) this will bind a route service on your route. **Note**: It obviously needs a service which is a route service.
 - **service_params**: *(Optional, default: `null`)*  Must be in json, set params to send to service when binding on it.
+- **protocol**: *(Optional, default: `null`)*  This parameter is only for uri computed parameter it permits to override 
+  the protocol when generating uri (generated uri will use always `https` protocol when it's an http route, you can found useful to force in `http`).
+- **uri**: *(Computed)*  This is an uri generated by the resource, you can use this for service brokers resource for example. **Note**: It autodetects when it's an http route or a tcp route.
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled, except:
+- `service_params`
+
+```tf
+resource "cloudfoundry_route" "route_superroute" {
+  hostname = "superroute"
+  domain_id = "${cloudfoundry_domain.domain_mydomain.id}"
+  port = -1
+  path = ""
+}
+```
+
+- **name**: (**Required**) Your hostname.
+- **domain_id**: (**Required**) Domain id created from resource or data source [domains](#domains).
+- **port**: *(Optional, default: `-1`)* Set a port for your route (only works with a tcp domain). **Note**: If `0` a random port will be chose
+- **path**: *(Optional, default: `null`)* Set a path for your route (only works with a http(s) domain).
+- **protocol**: *(Optional, default: `null`)*  This parameter is only for uri computed parameter it permits to override 
+  the protocol when generating uri (generated uri will use always `https` protocol when it's an http route, you can found useful to force in `http`).
+
+### Isolation segments
+
+**IMPORTANT NOTE**:
+- Isolation segments are in development on cloud foundry and only available with cloud controller api V3.
+- My actual Cloud Foundry doesn't have isolation segment and resource could **not be tested**
+- **Use at your own risk, there is no warranty**
+
+#### Resource
+
+```tf
+resource "cloudfoundry_isolation_segment" "my_isolation_segment" {
+  name = "isolation_segment_name_set_in_cf_deployment"
+  orgs_id = ["${cloudfoundry_organization.org_mysuperorg.id}"]
+}
+```
+
+- **name**: (**Required**) Isolation segment that you have set on your cloud foundry deployment.
+- **orgs_id**: (**Required**) *(Optional, default: `null`)* You can pass a list of organization created from resource or data source [cloudfoundry_organization](#organizations), this will put those organizations in the isolation segment.
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_isolation_segment" "my_isolation_segment" {
+  name = "isolation_segment_name_set_in_cf_deployment"
+}
+```
+
+- **name**: (**Required**) Isolation segment that you have set on your cloud foundry deployment.
+
+### Stacks
+
+#### Resource
+
+**Stacks cannot be used as a resource**
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+data "cloudfoundry_stack" "my_stack" {
+  name = "cflinuxfs2"
+  first = false
+}
+```
+
+- **name**: *(Optional if `first` param set to `true`, default: `null`)* Name of the stack.
+- **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first stack found in your Cloud Foundry.
+
+#### Resource
 
 ### Service brokers
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
@@ -343,9 +540,23 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 - **service_access**: (**Required**) Add service access as many as you need, service access make you service broker accessible on marketplace:
   - **service**: (**Required**) Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
   - **plan**: *(Optional, default: `null`)* Plan from your service broker catalog attached to this service to activate. **Note**: if no `org_id` is given it will enable this plan on all orgs.
-  - **org_id**: *(Optional, default: `null`)* Org id created from resource [cloudfoundry_organization](#organizations) to activate this service. **Note**: if no `plan` is given it will all plans on this org.
+  - **org_id**: *(Optional, default: `null`)* Org id created from resource or data source [cloudfoundry_organization](#organizations) to activate this service. **Note**: if no `plan` is given it will all plans on this org.
   
 **BUG FOUND**: if you set both `plan` and `org_id` in your `service_access` Cloud Foundry will enable all plans on this org. It's maybe only on the version of Cloud Foundry I am. Feedbacks are needed on other versions.
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled, except:
+- `username`
+- `password`
+
+```tf
+resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
+  name = "mysuperbroker"
+}
+```
+
+- **name**: (**Required**) Name of your service broker.
 
 ## Enable password encryption
 

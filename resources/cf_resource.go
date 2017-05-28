@@ -10,6 +10,10 @@ type CfResource interface {
 	Exists(*schema.ResourceData, interface{}) (bool, error)
 	Schema() map[string]*schema.Schema
 }
+type CfDataSource interface {
+	DataSourceSchema() map[string]*schema.Schema
+	DataSourceRead(*schema.ResourceData, interface{}) error
+}
 
 func LoadCfResource(cfResource CfResource) *schema.Resource {
 	return &schema.Resource{
@@ -19,5 +23,11 @@ func LoadCfResource(cfResource CfResource) *schema.Resource {
 		Delete: cfResource.Delete,
 		Exists: cfResource.Exists,
 		Schema: cfResource.Schema(),
+	}
+}
+func LoadCfDataSource(cfDataSource CfDataSource) *schema.Resource {
+	return &schema.Resource{
+		Read:   cfDataSource.DataSourceRead,
+		Schema: cfDataSource.DataSourceSchema(),
 	}
 }
