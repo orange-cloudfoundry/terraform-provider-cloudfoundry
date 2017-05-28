@@ -85,6 +85,8 @@ provider "cloudfoundry" {
 
 ## Resources and Data sources
 
+----
+
 ### Organizations
 
 #### Resource
@@ -112,6 +114,8 @@ data "cloudfoundry_organization" "org_mysuperorg" {
 ```
 
 - **name**: (**Required**) Name of your organization.
+
+----
 
 ### Spaces
 
@@ -146,6 +150,8 @@ data "cloudfoundry_space" "space_mysuperspace" {
 
 - **name**: (**Required**) Name of your space.
 - **org_id**: (**Required**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
+
+----
 
 ### Quotas
 
@@ -191,6 +197,8 @@ data "cloudfoundry_quota" "quota_for_ahalet" {
 
 - **name**: (**Required**) Name of your quota.
 - **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource or data source [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
+
+----
 
 ### Security groups
 
@@ -246,6 +254,8 @@ data "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
 
 - **name**: (**Required**) Name of your security group.
 
+----
+
 ### Buildpacks
 
 #### Resource
@@ -277,6 +287,8 @@ resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
 ```
 
 - **name**: (**Required**) Name of your buildpack.
+
+----
 
 ### Feature flags
 
@@ -314,6 +326,8 @@ Custom flags made for feature flags not in the default resource:
 #### Data source
 
 **Feature flags cannot be used as data source**
+
+----
 
 ### Services
 
@@ -374,6 +388,8 @@ data "cloudfoundry_service" "svc_ups" {
 - **name**: (**Required**) Name of your service.
 - **space_id**: (**Required**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register service inside.
 
+----
+
 ### Domains
 
 #### Resource
@@ -410,7 +426,11 @@ data "cloudfoundry_domain" "domain_mydomain" {
 - **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first domain found in your Cloud Foundry (it will be the first shared domain if `org_owner_id` is not set).
 - **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which owned the domain [cloudfoundry_organization](#organizations).
 
+----
+
 ### Routes
+
+#### Resource
 
 ```tf
 resource "cloudfoundry_route" "route_superroute" {
@@ -456,6 +476,8 @@ resource "cloudfoundry_route" "route_superroute" {
 - **protocol**: *(Optional, default: `null`)*  This parameter is only for uri computed parameter it permits to override 
   the protocol when generating uri (generated uri will use always `https` protocol when it's an http route, you can found useful to force in `http`).
 
+----
+
 ### Isolation segments
 
 **IMPORTANT NOTE**:
@@ -487,6 +509,8 @@ data "cloudfoundry_isolation_segment" "my_isolation_segment" {
 
 - **name**: (**Required**) Isolation segment that you have set on your cloud foundry deployment.
 
+----
+
 ### Stacks
 
 #### Resource
@@ -506,8 +530,6 @@ data "cloudfoundry_stack" "my_stack" {
 
 - **name**: *(Optional if `first` param set to `true`, default: `null`)* Name of the stack.
 - **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first stack found in your Cloud Foundry.
-
-#### Resource
 
 ### Service brokers
 
