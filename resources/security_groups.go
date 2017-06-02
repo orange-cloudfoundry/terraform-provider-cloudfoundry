@@ -195,13 +195,17 @@ func (c CfSecurityGroupResource) Update(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
+	isOnRunning, err := c.isOnRunning(client, d.Id())
+	if err != nil {
+		return err
+	}
 	if d.Get("on_staging").(bool) != isOnStaging {
 		err = c.updateBindingStaging(client, d.Id(), d.Get("on_staging").(bool))
 		if err != nil {
 			return err
 		}
 	}
-	if d.Get("on_running").(bool) != isOnStaging {
+	if d.Get("on_running").(bool) != isOnRunning {
 		err = c.updateBindingRunning(client, d.Id(), d.Get("on_running").(bool))
 		if err != nil {
 			return err
