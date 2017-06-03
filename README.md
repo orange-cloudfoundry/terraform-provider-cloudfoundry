@@ -559,6 +559,7 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 - **url**: (**Required**) URL to access to your service broker.
 - **username**: *(Optional, default: `null`)* Username to authenticate to your service broker.
 - **password**: *(Optional, default: `null`)* Password to authenticate to your service broker. **Note**: you can pass a base 64 encrypted gpg message if you [enabled password encryption](#enable-password-encryption).
+- **catalog_sha1**: *(Computed)* Do not modify yourself, this permits to detect a change in the service broker catalog.
 - **service_access**: (**Required**) Add service access as many as you need, service access make you service broker accessible on marketplace:
   - **service**: (**Required**) Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
   - **plan**: *(Optional, default: `null`)* Plan from your service broker catalog attached to this service to activate. **Note**: if no `org_id` is given it will enable this plan on all orgs.

@@ -4,12 +4,22 @@ import (
 	"bytes"
 	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/models"
+	"crypto/sha1"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
+	"time"
+)
+
+const (
+	CATALOG_ROUTE = "/v2/catalog"
 )
 
 type CfServiceBrokerResource struct {
@@ -95,6 +105,49 @@ func (c CfServiceBrokerResource) transformServicesAccessToMap(serviceAccess Serv
 		"plan":    serviceAccess.Plan,
 		"org_id":  serviceAccess.OrgId,
 	}
+}
+func (c CfServiceBrokerResource) generateCatalogSha1(sb models.ServiceBroker, config cf_client.Config) string {
+	tr := &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipInsecureSSL},
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   2 * time.Second,
+	}
+	catalogUrl := sb.URL
+	if strings.HasSuffix(catalogUrl, "/") {
+		catalogUrl = strings.TrimSuffix(catalogUrl, "/")
+	}
+	catalogUrl += CATALOG_ROUTE
+	req, err := http.NewRequest("GET", catalogUrl, nil)
+	if err != nil {
+		log.Printf(
+			"[WARN] skipping generating catalog sha1, error during request creation: %s",
+			err.Error(),
+		)
+		return ""
+	}
+	req.SetBasicAuth(sb.Username, sb.Password)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf(
+			"[WARN] skipping generating catalog sha1, error when requesting: %s",
+			err.Error(),
+		)
+		return ""
+	}
+	h := sha1.New()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf(
+			"[WARN] skipping generating catalog sha1, error when reading response: %s",
+			err.Error(),
+		)
+		return ""
+	}
+	h.Write(bodyBytes)
+	return base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 func (c CfServiceBrokerResource) retrieveServicesAccessFromBroker(client cf_client.Client, serviceBroker models.ServiceBroker) ([]ServiceAccess, error) {
 	servicesAccess := make([]ServiceAccess, 0)
@@ -243,6 +296,7 @@ func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}
 		}
 		c.Exists(d, meta)
 	}
+	d.Set("catalog_sha1", c.generateCatalogSha1(serviceBroker, client.Config()))
 	serviceBrokerCf, err := c.getServiceBrokerFromCf(client, d.Id())
 	servicesAccess := c.serviceAccessObjects(d)
 	return c.updateServicesAccess(client, serviceBrokerCf, servicesAccess)
@@ -466,11 +520,15 @@ func (c CfServiceBrokerResource) containsServiceAccess(servicesAccess []ServiceA
 func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	brokerName := d.Get("name").(string)
-	broker, err := c.getServiceBrokerFromCf(client, d.Id())
+	broker, err := c.resourceObject(d, meta)
 	if err != nil {
 		return err
 	}
-	if broker.GUID == "" {
+	brokerCf, err := c.getServiceBrokerFromCf(client, d.Id())
+	if err != nil {
+		return err
+	}
+	if brokerCf.GUID == "" {
 		log.Printf(
 			"[WARN] removing service broker %s/%s from state because it no longer exists in your Cloud Foundry",
 			client.Config().ApiEndpoint,
@@ -479,11 +537,14 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 		d.SetId("")
 		return nil
 	}
-	d.Set("name", broker.Name)
-	d.Set("url", broker.URL)
-	d.Set("username", broker.Username)
+	d.Set("name", brokerCf.Name)
+	d.Set("url", brokerCf.URL)
+	d.Set("username", brokerCf.Username)
 
-	servicesAccess, err := c.retrieveServicesAccessFromBroker(client, broker)
+	brokerCf.Password = broker.Password
+	d.Set("catalog_sha1", c.generateCatalogSha1(brokerCf, client.Config()))
+
+	servicesAccess, err := c.retrieveServicesAccessFromBroker(client, brokerCf)
 
 	serviceAccessSchema := schema.NewSet(d.Get("service_access").(*schema.Set).F, make([]interface{}, 0))
 	for _, serviceAccess := range servicesAccess {
@@ -512,10 +573,14 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 		d.SetId("")
 		return nil
 	}
+	brokerCf.Password = broker.Password
+	currentCatalogSha1 := d.Get("catalog_sha1")
+	d.Set("catalog_sha1", c.generateCatalogSha1(brokerCf, client.Config()))
 	if broker.Name != brokerCf.Name ||
 		broker.URL != brokerCf.URL ||
-		broker.Username != brokerCf.Username {
-		err = client.ServiceBrokers().Update(broker)
+		broker.Username != brokerCf.Username ||
+		currentCatalogSha1 != d.Get("catalog_sha1") {
+		err = client.ServiceBrokers().Update(brokerCf)
 		if err != nil {
 			return err
 		}
@@ -608,8 +673,14 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"password": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:      schema.TypeString,
+			Optional:  true,
+			Sensitive: true,
+		},
+		"catalog_sha1": &schema.Schema{
+			Type:      schema.TypeString,
+			Optional:  true,
+			Sensitive: true,
 		},
 		"service_access": &schema.Schema{
 			Type:     schema.TypeSet,
