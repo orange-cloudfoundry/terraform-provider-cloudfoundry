@@ -14,6 +14,7 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 - [Routes](#routes)
 - [Isolation Segments](#isolation-segments)
 - [Stacks](#stacks)
+- [Environment Variable Group](#environment-variable-group)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
 
 ## Installations
