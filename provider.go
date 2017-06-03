@@ -83,6 +83,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_service":           resources.LoadCfResource(resources.CfServiceResource{}),
 			"cloudfoundry_feature_flags":     resources.LoadCfResource(resources.CfFeatureFlagsResource{}),
 			"cloudfoundry_isolation_segment": resources.LoadCfResource(resources.CfIsolationSegmentsResource{}),
+			"cloudfoundry_env_var_group":     resources.LoadCfResource(resources.CfEnvVarGroupResource{}),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
@@ -109,7 +110,7 @@ func main() {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := cf_client.Config{
 		AppName:          "tf-provider",
-		AppVersion:       "0.7.0",
+		AppVersion:       "0.7.2",
 		ApiEndpoint:      d.Get("api_endpoint").(string),
 		Username:         d.Get("username").(string),
 		Password:         d.Get("password").(string),

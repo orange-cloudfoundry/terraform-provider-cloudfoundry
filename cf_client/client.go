@@ -8,6 +8,7 @@ import (
 	uaaWrapper "code.cloudfoundry.org/cli/api/uaa/wrapper"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
+	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/quotas"
@@ -53,6 +54,7 @@ type Client interface {
 	RouteServiceBinding() api.RouteServiceBindingRepository
 	UserProvidedService() api.UserProvidedServiceInstanceRepository
 	FeatureFlags() featureflags.FeatureFlagRepository
+	EnvVarGroup() environmentvariablegroups.Repository
 	CCv3Client() *ccv3.Client
 }
 type CfClient struct {
@@ -81,6 +83,7 @@ type CfClient struct {
 	userProvidedService         api.UserProvidedServiceInstanceRepository
 	finder                      FinderRepository
 	featureFlags                featureflags.FeatureFlagRepository
+	envVarGroup                 environmentvariablegroups.Repository
 	ccv3Client                  *ccv3.Client
 }
 
@@ -222,6 +225,7 @@ func (client *CfClient) LoadRepositories() {
 	client.routeServiceBinding = api.NewCloudControllerRouteServiceBindingRepository(repository, gateways.CloudControllerGateway)
 	client.userProvidedService = api.NewCCUserProvidedServiceInstanceRepository(repository, gateways.CloudControllerGateway)
 	client.featureFlags = featureflags.NewCloudControllerFeatureFlagRepository(repository, gateways.CloudControllerGateway)
+	client.envVarGroup = environmentvariablegroups.NewCloudControllerRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -300,6 +304,9 @@ func (client CfClient) Finder() FinderRepository {
 }
 func (client CfClient) FeatureFlags() featureflags.FeatureFlagRepository {
 	return client.featureFlags
+}
+func (client CfClient) EnvVarGroup() environmentvariablegroups.Repository {
+	return client.envVarGroup
 }
 func (client CfClient) CCv3Client() *ccv3.Client {
 	return client.ccv3Client

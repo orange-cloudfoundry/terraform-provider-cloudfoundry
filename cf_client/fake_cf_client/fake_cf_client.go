@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/apifakes"
+	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/organizations/organizationsfakes"
@@ -164,6 +165,9 @@ func (client FakeCfClient) Finder() cf_client.FinderRepository {
 }
 func (client FakeCfClient) FeatureFlags() featureflags.FeatureFlagRepository {
 	return &featureflags.CloudControllerFeatureFlagRepository{}
+}
+func (client FakeCfClient) EnvVarGroup() environmentvariablegroups.Repository {
+	return environmentvariablegroups.CloudControllerRepository{}
 }
 func (client FakeCfClient) CCv3Client() *ccv3.Client {
 	return &ccv3.Client{}

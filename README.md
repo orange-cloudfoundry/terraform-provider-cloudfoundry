@@ -25,7 +25,7 @@ This POC demonstrates the use-case of managing a Cloud Foundry instance with ter
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.7.0"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.7.2"
 ```
 
 #### via curl
@@ -530,6 +530,41 @@ data "cloudfoundry_stack" "my_stack" {
 
 - **name**: *(Optional if `first` param set to `true`, default: `null`)* Name of the stack.
 - **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first stack found in your Cloud Foundry.
+
+----
+
+### Environment Variable Group
+
+#### Resource
+
+```tf
+resource "cloudfoundry_env_var_group" "env_var_group" {
+  env_var {
+    key = "myvar1"
+    value = "myvalue1"
+    running = true
+    staging = true
+  }
+  env_var {
+    key = "myvar2"
+    value = "myvalue1"
+    running = true
+    staging = true
+  }
+}
+```
+
+- **env_var**: (**Required**) Add any variable you want to environment variable group:
+  - **key**: (**Required**) Env var key.
+  - **value**: (**Required**) Env var value.
+  - **running**: (**Required**) if set to `true` this env var will be use on all running app.
+  - **staging**: (**Required**) if set to `true` this env var will be use during staging step when creating an app.
+
+#### Data source
+
+**Environment Variable Group cannot be used as a data source**
+
+----
 
 ### Service brokers
 
