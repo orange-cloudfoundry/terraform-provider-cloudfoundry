@@ -540,10 +540,14 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("name", brokerCf.Name)
 	d.Set("url", brokerCf.URL)
 	d.Set("username", brokerCf.Username)
-
+	currentSha1 := d.Get("catalog_sha1").(string)
 	brokerCf.Password = broker.Password
-	d.Set("catalog_sha1", c.generateCatalogSha1(brokerCf, client.Config()))
-
+	remoteSha1 := c.generateCatalogSha1(brokerCf, client.Config())
+	if currentSha1 == remoteSha1 {
+		d.Set("catalog_sha1", "")
+	} else {
+		d.Set("catalog_sha1", remoteSha1)
+	}
 	servicesAccess, err := c.retrieveServicesAccessFromBroker(client, brokerCf)
 
 	serviceAccessSchema := schema.NewSet(d.Get("service_access").(*schema.Set).F, make([]interface{}, 0))
