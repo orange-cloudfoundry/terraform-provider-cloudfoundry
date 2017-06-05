@@ -544,9 +544,10 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 	brokerCf.Password = broker.Password
 	remoteSha1 := c.generateCatalogSha1(brokerCf, client.Config())
 	if currentSha1 == remoteSha1 {
-		d.Set("catalog_sha1", "")
+		d.Set("catalog_has_changed", "")
 	} else {
 		d.Set("catalog_sha1", remoteSha1)
+		d.Set("catalog_has_changed", "modified")
 	}
 	servicesAccess, err := c.retrieveServicesAccessFromBroker(client, brokerCf)
 
@@ -559,6 +560,7 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 }
 func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
+	d.Set("catalog_has_changed", "modified")
 	brokerName := d.Get("name").(string)
 	broker, err := c.resourceObject(d, meta)
 	if err != nil {
@@ -682,9 +684,12 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Sensitive: true,
 		},
 		"catalog_sha1": &schema.Schema{
-			Type:      schema.TypeString,
-			Optional:  true,
-			Sensitive: true,
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"catalog_has_changed": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
 		},
 		"service_access": &schema.Schema{
 			Type:     schema.TypeSet,
