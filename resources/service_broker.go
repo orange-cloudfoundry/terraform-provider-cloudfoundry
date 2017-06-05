@@ -560,7 +560,7 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 }
 func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
-	d.Set("catalog_has_changed", "modified")
+	d.Set("catalog_has_changed", "")
 	brokerName := d.Get("name").(string)
 	broker, err := c.resourceObject(d, meta)
 	if err != nil {
