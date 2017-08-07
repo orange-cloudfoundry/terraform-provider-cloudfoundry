@@ -297,6 +297,7 @@ func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}
 		c.Exists(d, meta)
 	}
 	d.Set("catalog_sha1", c.generateCatalogSha1(serviceBroker, client.Config()))
+	d.Set("previous_password", serviceBroker.Password)
 	serviceBrokerCf, err := c.getServiceBrokerFromCf(client, d.Id())
 	servicesAccess := c.serviceAccessObjects(d)
 	return c.updateServicesAccess(client, serviceBrokerCf, servicesAccess)
@@ -540,6 +541,7 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("name", brokerCf.Name)
 	d.Set("url", brokerCf.URL)
 	d.Set("username", brokerCf.Username)
+	d.Set("password", d.Get("previous_password"))
 	currentSha1 := d.Get("catalog_sha1").(string)
 	brokerCf.Password = broker.Password
 	remoteSha1 := c.generateCatalogSha1(brokerCf, client.Config())
@@ -579,12 +581,15 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 		d.SetId("")
 		return nil
 	}
+	previousPassword := d.Get("previous_password").(string)
 	brokerCf.Password = broker.Password
+	d.Set("previous_password", broker.Password)
 	currentCatalogSha1 := d.Get("catalog_sha1")
 	d.Set("catalog_sha1", c.generateCatalogSha1(brokerCf, client.Config()))
 	if broker.Name != brokerCf.Name ||
 		broker.URL != brokerCf.URL ||
 		broker.Username != brokerCf.Username ||
+		broker.Password != previousPassword ||
 		currentCatalogSha1 != d.Get("catalog_sha1") {
 		err = client.ServiceBrokers().Update(brokerCf)
 		if err != nil {
@@ -684,6 +689,10 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Sensitive: true,
 		},
 		"catalog_sha1": &schema.Schema{
+			Type:     schema.TypeString,
+			Computed: true,
+		},
+		"previous_password": &schema.Schema{
 			Type:     schema.TypeString,
 			Computed: true,
 		},
