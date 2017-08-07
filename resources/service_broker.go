@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/common"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -668,7 +669,7 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Required: true,
 			ValidateFunc: func(elem interface{}, index string) ([]string, []error) {
 				url := elem.(string)
-				if IsWebURL(url) {
+				if common.IsWebURL(url) {
 					return make([]string, 0), make([]error, 0)
 				}
 				errMsg := fmt.Sprintf(

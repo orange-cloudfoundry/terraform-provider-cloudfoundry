@@ -84,6 +84,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_feature_flags":     resources.LoadCfResource(resources.CfFeatureFlagsResource{}),
 			"cloudfoundry_isolation_segment": resources.LoadCfResource(resources.CfIsolationSegmentsResource{}),
 			"cloudfoundry_env_var_group":     resources.LoadCfResource(resources.CfEnvVarGroupResource{}),
+			"cloudfoundry_app":               resources.LoadCfResource(resources.CfAppsResource{}),
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{

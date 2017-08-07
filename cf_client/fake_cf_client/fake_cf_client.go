@@ -4,6 +4,7 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/apifakes"
+	"code.cloudfoundry.org/cli/cf/api/applications"
 	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
@@ -23,6 +24,8 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spaces/spacesfakes"
 	"code.cloudfoundry.org/cli/cf/api/stacks"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager/bitsmanagerfakes"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption/fake_encryption"
@@ -51,6 +54,7 @@ type FakeCfClient struct {
 	routeServiceBinding         *apifakes.FakeRouteServiceBindingRepository
 	userProvidedService         *apifakes.FakeUserProvidedServiceInstanceRepository
 	finder                      *FakeFinderRepository
+	applicationBits             *bitsmanagerfakes.FakeApplicationBitsRepository
 }
 
 func NewFakeCfClient() *FakeCfClient {
@@ -84,6 +88,7 @@ func (c *FakeCfClient) Init() {
 	c.route = new(apifakes.FakeRouteRepository)
 	c.routeServiceBinding = new(apifakes.FakeRouteServiceBindingRepository)
 	c.userProvidedService = new(apifakes.FakeUserProvidedServiceInstanceRepository)
+	c.applicationBits = new(bitsmanagerfakes.FakeApplicationBitsRepository)
 	c.finder = new(FakeFinderRepository)
 	c.decrypter = fake_encryption.NewFakeDecrypter()
 }
@@ -172,6 +177,12 @@ func (client FakeCfClient) EnvVarGroup() environmentvariablegroups.Repository {
 func (client FakeCfClient) CCv3Client() *ccv3.Client {
 	return &ccv3.Client{}
 }
+func (client FakeCfClient) Applications() applications.Repository {
+	return applications.CloudControllerRepository{}
+}
+func (client FakeCfClient) ApplicationBits() bitsmanager.ApplicationBitsRepository {
+	return client.applicationBits
+}
 
 // get Fake call -------
 
@@ -237,4 +248,7 @@ func (client FakeCfClient) FakeUserProvidedService() *apifakes.FakeUserProvidedS
 }
 func (client FakeCfClient) FakeFinder() *FakeFinderRepository {
 	return client.finder
+}
+func (client FakeCfClient) FakeApplicationBits() *bitsmanagerfakes.FakeApplicationBitsRepository {
+	return client.applicationBits
 }

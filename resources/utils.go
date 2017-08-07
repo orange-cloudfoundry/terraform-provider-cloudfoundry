@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/viant/toolbox"
-	"strings"
 )
 
 // Giving missing security groups from a source which are not in a slice of security groups
@@ -27,9 +26,6 @@ func containsSecGroup(s []models.SecurityGroupFields, e models.SecurityGroupFiel
 		}
 	}
 	return false
-}
-func IsWebURL(path string) bool {
-	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
 }
 func CreateDataSourceSchema(resource CfResource, keysUntouch ...string) map[string]*schema.Schema {
 	schemas := resource.Schema()

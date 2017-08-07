@@ -7,6 +7,7 @@ import (
 	"code.cloudfoundry.org/cli/api/uaa"
 	uaaWrapper "code.cloudfoundry.org/cli/api/uaa/wrapper"
 	"code.cloudfoundry.org/cli/cf/api"
+	"code.cloudfoundry.org/cli/cf/api/applications"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
 	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
@@ -23,6 +24,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/i18n"
 	"code.cloudfoundry.org/cli/cf/net"
 	"code.cloudfoundry.org/cli/cf/trace"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"io/ioutil"
 	"time"
@@ -55,6 +57,8 @@ type Client interface {
 	UserProvidedService() api.UserProvidedServiceInstanceRepository
 	FeatureFlags() featureflags.FeatureFlagRepository
 	EnvVarGroup() environmentvariablegroups.Repository
+	Applications() applications.Repository
+	ApplicationBits() bitsmanager.ApplicationBitsRepository
 	CCv3Client() *ccv3.Client
 }
 type CfClient struct {
@@ -84,6 +88,8 @@ type CfClient struct {
 	finder                      FinderRepository
 	featureFlags                featureflags.FeatureFlagRepository
 	envVarGroup                 environmentvariablegroups.Repository
+	applications                applications.Repository
+	applicationBits             bitsmanager.ApplicationBitsRepository
 	ccv3Client                  *ccv3.Client
 }
 
@@ -226,6 +232,8 @@ func (client *CfClient) LoadRepositories() {
 	client.userProvidedService = api.NewCCUserProvidedServiceInstanceRepository(repository, gateways.CloudControllerGateway)
 	client.featureFlags = featureflags.NewCloudControllerFeatureFlagRepository(repository, gateways.CloudControllerGateway)
 	client.envVarGroup = environmentvariablegroups.NewCloudControllerRepository(repository, gateways.CloudControllerGateway)
+	client.applications = applications.NewCloudControllerRepository(repository, gateways.CloudControllerGateway)
+	client.applicationBits = bitsmanager.NewCloudControllerApplicationBitsRepository(repository, gateways.CloudControllerGateway)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -307,6 +315,12 @@ func (client CfClient) FeatureFlags() featureflags.FeatureFlagRepository {
 }
 func (client CfClient) EnvVarGroup() environmentvariablegroups.Repository {
 	return client.envVarGroup
+}
+func (client CfClient) Applications() applications.Repository {
+	return client.applications
+}
+func (client CfClient) ApplicationBits() bitsmanager.ApplicationBitsRepository {
+	return client.applicationBits
 }
 func (client CfClient) CCv3Client() *ccv3.Client {
 	return client.ccv3Client
