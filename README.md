@@ -1,8 +1,8 @@
 # terraform-provider-cloudfoundry  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry)
 
-This is a work in progress currently in a proof-of-concept state, meaning the syntax will change soon, and the implementation is being hardened. The [design proposal docoument](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and a refined modeling of the CF-related resources. Feedback and contributions in the google doc are welcomed.
+This is a work in progress, meaning the syntax may change in the future, and the implementation is being hardened. The [design proposal document](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and the next potential resources to be added. Feedback and contributions are welcomed.
 
-This POC demonstrates the use-case of managing a Cloud Foundry instance with terraform file(s), with current support for:
+This terraformp provider supports the use-case of managing a Cloud Foundry instance, with current support for:
 - [Organizations](#organizations)
 - [Spaces](#spaces)
 - [Quotas](#quotas) (Space and Organization ones)
