@@ -20,6 +20,31 @@ type FakeBitsManager struct {
 	uploadReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CopyBitsStub        func(origAppGuid string, newAppGuid string) error
+	copyBitsMutex       sync.RWMutex
+	copyBitsArgsForCall []struct {
+		origAppGuid string
+		newAppGuid  string
+	}
+	copyBitsReturns struct {
+		result1 error
+	}
+	copyBitsReturnsOnCall map[int]struct {
+		result1 error
+	}
+	GetSha1Stub        func(path string) (sha1 string, err error)
+	getSha1Mutex       sync.RWMutex
+	getSha1ArgsForCall []struct {
+		path string
+	}
+	getSha1Returns struct {
+		result1 string
+		result2 error
+	}
+	getSha1ReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	IsDiffStub        func(path string, currentSha1 string) (isDiff bool, sha1 string, err error)
 	isDiffMutex       sync.RWMutex
 	isDiffArgsForCall []struct {
@@ -89,6 +114,106 @@ func (fake *FakeBitsManager) UploadReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBitsManager) CopyBits(origAppGuid string, newAppGuid string) error {
+	fake.copyBitsMutex.Lock()
+	ret, specificReturn := fake.copyBitsReturnsOnCall[len(fake.copyBitsArgsForCall)]
+	fake.copyBitsArgsForCall = append(fake.copyBitsArgsForCall, struct {
+		origAppGuid string
+		newAppGuid  string
+	}{origAppGuid, newAppGuid})
+	fake.recordInvocation("CopyBits", []interface{}{origAppGuid, newAppGuid})
+	fake.copyBitsMutex.Unlock()
+	if fake.CopyBitsStub != nil {
+		return fake.CopyBitsStub(origAppGuid, newAppGuid)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.copyBitsReturns.result1
+}
+
+func (fake *FakeBitsManager) CopyBitsCallCount() int {
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
+	return len(fake.copyBitsArgsForCall)
+}
+
+func (fake *FakeBitsManager) CopyBitsArgsForCall(i int) (string, string) {
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
+	return fake.copyBitsArgsForCall[i].origAppGuid, fake.copyBitsArgsForCall[i].newAppGuid
+}
+
+func (fake *FakeBitsManager) CopyBitsReturns(result1 error) {
+	fake.CopyBitsStub = nil
+	fake.copyBitsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBitsManager) CopyBitsReturnsOnCall(i int, result1 error) {
+	fake.CopyBitsStub = nil
+	if fake.copyBitsReturnsOnCall == nil {
+		fake.copyBitsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.copyBitsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBitsManager) GetSha1(path string) (sha1 string, err error) {
+	fake.getSha1Mutex.Lock()
+	ret, specificReturn := fake.getSha1ReturnsOnCall[len(fake.getSha1ArgsForCall)]
+	fake.getSha1ArgsForCall = append(fake.getSha1ArgsForCall, struct {
+		path string
+	}{path})
+	fake.recordInvocation("GetSha1", []interface{}{path})
+	fake.getSha1Mutex.Unlock()
+	if fake.GetSha1Stub != nil {
+		return fake.GetSha1Stub(path)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getSha1Returns.result1, fake.getSha1Returns.result2
+}
+
+func (fake *FakeBitsManager) GetSha1CallCount() int {
+	fake.getSha1Mutex.RLock()
+	defer fake.getSha1Mutex.RUnlock()
+	return len(fake.getSha1ArgsForCall)
+}
+
+func (fake *FakeBitsManager) GetSha1ArgsForCall(i int) string {
+	fake.getSha1Mutex.RLock()
+	defer fake.getSha1Mutex.RUnlock()
+	return fake.getSha1ArgsForCall[i].path
+}
+
+func (fake *FakeBitsManager) GetSha1Returns(result1 string, result2 error) {
+	fake.GetSha1Stub = nil
+	fake.getSha1Returns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBitsManager) GetSha1ReturnsOnCall(i int, result1 string, result2 error) {
+	fake.GetSha1Stub = nil
+	if fake.getSha1ReturnsOnCall == nil {
+		fake.getSha1ReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.getSha1ReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBitsManager) IsDiff(path string, currentSha1 string) (isDiff bool, sha1 string, err error) {
 	fake.isDiffMutex.Lock()
 	ret, specificReturn := fake.isDiffReturnsOnCall[len(fake.isDiffArgsForCall)]
@@ -149,6 +274,10 @@ func (fake *FakeBitsManager) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.uploadMutex.RLock()
 	defer fake.uploadMutex.RUnlock()
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
+	fake.getSha1Mutex.RLock()
+	defer fake.getSha1Mutex.RUnlock()
 	fake.isDiffMutex.RLock()
 	defer fake.isDiffMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

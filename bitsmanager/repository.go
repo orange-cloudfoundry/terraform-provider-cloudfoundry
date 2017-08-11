@@ -25,11 +25,28 @@ const (
 )
 
 //go:generate counterfeiter . Repository
-
+type Job struct {
+	Metadata struct {
+		GUID      string    `json:"guid"`
+		CreatedAt time.Time `json:"created_at"`
+		URL       string    `json:"url"`
+	} `json:"metadata"`
+	Entity struct {
+		GUID         string `json:"guid"`
+		Status       string `json:"status"`
+		Error        string `json:"error"`
+		ErrorDetails struct {
+			Code        int    `json:"code"`
+			Description string `json:"description"`
+			ErrorCode   string `json:"error_code"`
+		} `json:"error_details"`
+	} `json:"entity"`
+}
 type ApplicationBitsRepository interface {
 	GetApplicationSha1(appGUID string) (string, error)
 	IsDiff(appGUID string, currentSha1 string) (bool, string, error)
 	UploadBits(appGUID string, zipFile io.ReadCloser, fileSize int64) (apiErr error)
+	CopyBits(origAppGuid string, newAppGuid string) error
 }
 
 type CloudControllerApplicationBitsRepository struct {
@@ -84,7 +101,51 @@ func (repo CloudControllerApplicationBitsRepository) GetApplicationSha1(appGUID 
 	}
 	return sha1, nil
 }
-
+func (repo CloudControllerApplicationBitsRepository) CopyBits(origAppGuid string, newAppGuid string) error {
+	apiURL := fmt.Sprintf("%s/v2/apps/%s/copy_bits", repo.config.APIEndpoint(), newAppGuid)
+	data := bytes.NewReader([]byte(fmt.Sprintf(`{"source_app_guid":"%s"}`, origAppGuid)))
+	req, err := repo.gateway.NewRequest("POST", apiURL, repo.config.AccessToken(), data)
+	if err != nil {
+		return err
+	}
+	var job Job
+	_, err = repo.gateway.PerformRequestForJSONResponse(req, &job)
+	if err != nil {
+		return err
+	}
+	for {
+		job, err := repo.getJob(job.Entity.GUID)
+		if err != nil {
+			return err
+		}
+		if job.Entity.Status == "finished" {
+			return nil
+		}
+		if job.Entity.Status == "failed" {
+			return fmt.Errorf(
+				"Error %s, %s [code: %d]",
+				job.Entity.ErrorDetails.ErrorCode,
+				job.Entity.ErrorDetails.Description,
+				job.Entity.ErrorDetails.Code,
+			)
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return nil
+}
+func (repo CloudControllerApplicationBitsRepository) getJob(jobGuid string) (Job, error) {
+	apiURL := fmt.Sprintf("%s/v2/jobs/%s", repo.config.APIEndpoint(), jobGuid)
+	req, err := repo.gateway.NewRequest("GET", apiURL, repo.config.AccessToken(), nil)
+	if err != nil {
+		return Job{}, err
+	}
+	var job Job
+	_, err = repo.gateway.PerformRequestForJSONResponse(req, &job)
+	if err != nil {
+		return Job{}, err
+	}
+	return job, nil
+}
 func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, zipFile io.ReadCloser, fileSize int64) (apiErr error) {
 	apiURL := fmt.Sprintf("/v2/apps/%s/bits", appGUID)
 	fileutils.TempFile("requests", func(requestFile *os.File, err error) {

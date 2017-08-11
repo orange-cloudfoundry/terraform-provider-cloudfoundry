@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 
-	. "code.cloudfoundry.org/cli/cf/i18n"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager"
 )
 
@@ -50,6 +49,18 @@ type FakeApplicationBitsRepository struct {
 		result1 error
 	}
 	uploadBitsReturnsOnCall map[int]struct {
+		result1 error
+	}
+	CopyBitsStub        func(origAppGuid string, newAppGuid string) error
+	copyBitsMutex       sync.RWMutex
+	copyBitsArgsForCall []struct {
+		origAppGuid string
+		newAppGuid  string
+	}
+	copyBitsReturns struct {
+		result1 error
+	}
+	copyBitsReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
@@ -212,6 +223,55 @@ func (fake *FakeApplicationBitsRepository) UploadBitsReturnsOnCall(i int, result
 	}{result1}
 }
 
+func (fake *FakeApplicationBitsRepository) CopyBits(origAppGuid string, newAppGuid string) error {
+	fake.copyBitsMutex.Lock()
+	ret, specificReturn := fake.copyBitsReturnsOnCall[len(fake.copyBitsArgsForCall)]
+	fake.copyBitsArgsForCall = append(fake.copyBitsArgsForCall, struct {
+		origAppGuid string
+		newAppGuid  string
+	}{origAppGuid, newAppGuid})
+	fake.recordInvocation("CopyBits", []interface{}{origAppGuid, newAppGuid})
+	fake.copyBitsMutex.Unlock()
+	if fake.CopyBitsStub != nil {
+		return fake.CopyBitsStub(origAppGuid, newAppGuid)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.copyBitsReturns.result1
+}
+
+func (fake *FakeApplicationBitsRepository) CopyBitsCallCount() int {
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
+	return len(fake.copyBitsArgsForCall)
+}
+
+func (fake *FakeApplicationBitsRepository) CopyBitsArgsForCall(i int) (string, string) {
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
+	return fake.copyBitsArgsForCall[i].origAppGuid, fake.copyBitsArgsForCall[i].newAppGuid
+}
+
+func (fake *FakeApplicationBitsRepository) CopyBitsReturns(result1 error) {
+	fake.CopyBitsStub = nil
+	fake.copyBitsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeApplicationBitsRepository) CopyBitsReturnsOnCall(i int, result1 error) {
+	fake.CopyBitsStub = nil
+	if fake.copyBitsReturnsOnCall == nil {
+		fake.copyBitsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.copyBitsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeApplicationBitsRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -221,6 +281,8 @@ func (fake *FakeApplicationBitsRepository) Invocations() map[string][][]interfac
 	defer fake.isDiffMutex.RUnlock()
 	fake.uploadBitsMutex.RLock()
 	defer fake.uploadBitsMutex.RUnlock()
+	fake.copyBitsMutex.RLock()
+	defer fake.copyBitsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

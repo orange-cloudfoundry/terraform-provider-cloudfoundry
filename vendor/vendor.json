@@ -57,6 +57,12 @@
 			"revisionTime": "2017-04-06T23:07:22Z"
 		},
 		{
+			"checksumSHA1": "ofLNSPmSd5Fhj3EL3Ie76jdETEs=",
+			"path": "code.cloudfoundry.org/cli/api/uaa/noaabridge",
+			"revision": "9c9a261fd05f1df71efad745e042b88d0773fe6e",
+			"revisionTime": "2017-04-06T23:07:22Z"
+		},
+		{
 			"checksumSHA1": "CYCuq57RTxLMWZpsfTvD9iOc5ss=",
 			"path": "code.cloudfoundry.org/cli/api/uaa/wrapper",
 			"revision": "9c9a261fd05f1df71efad745e042b88d0773fe6e",

@@ -22,6 +22,7 @@ type FileHandler struct {
 }
 type BitsManager interface {
 	Upload(appGuid string, path string) error
+	CopyBits(origAppGuid string, newAppGuid string) error
 	GetSha1(path string) (sha1 string, err error)
 	IsDiff(path string, currentSha1 string) (isDiff bool, sha1 string, err error)
 }
@@ -42,6 +43,9 @@ func (m CloudControllerBitsManager) GetSha1(path string) (string, error) {
 		return "", err
 	}
 	return h.GetSha1File(path)
+}
+func (m CloudControllerBitsManager) CopyBits(origAppGuid string, newAppGuid string) error {
+	return m.appBitsRepo.CopyBits(origAppGuid, newAppGuid)
 }
 func (m CloudControllerBitsManager) Upload(appGuid string, path string) error {
 	h, err := m.chooseHandler(path)

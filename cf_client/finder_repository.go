@@ -16,6 +16,8 @@ type FinderRepository interface {
 	GetSecGroupFromCf(secGroupId string) (models.SecurityGroup, error)
 	GetServiceFromCf(svcGuid string) (models.ServiceInstance, error)
 	GetSpaceFromCf(spaceGuid string) (models.Space, error)
+	GetAppFromCf(appGuid string) (models.Application, error)
+	GetServiceBindingsFromApp(appGuid string) ([]models.ServiceBindingFields, error)
 }
 type Finder struct {
 	config    Config
@@ -157,6 +159,35 @@ func (f Finder) GetSpaceFromCf(spaceGuid string) (models.Space, error) {
 	}
 	if err != nil {
 		return models.Space{}, err
+	}
+	return res.ToModel(), nil
+}
+func (f Finder) GetServiceBindingsFromApp(appGuid string) ([]models.ServiceBindingFields, error) {
+	serviceBindings := []models.ServiceBindingFields{}
+	err := f.ccGateway.ListPaginatedResources(
+		f.config.ApiEndpoint,
+		fmt.Sprintf("/v2/apps/%s/service_bindings", appGuid),
+		resources.ServiceBindingResource{},
+		func(resource interface{}) bool {
+			if serviceBindingResource, ok := resource.(resources.ServiceBindingResource); ok {
+				serviceBindings = append(serviceBindings, serviceBindingResource.ToFields())
+			}
+			return true
+		},
+	)
+	return serviceBindings, err
+
+}
+func (f Finder) GetAppFromCf(appGuid string) (models.Application, error) {
+	res := resources.ApplicationResource{}
+	err := f.ccGateway.GetResource(
+		fmt.Sprintf("%s/v2/apps/%s?inline-relations-depth=1", f.config.ApiEndpoint, appGuid),
+		&res)
+	if _, ok := err.(*errors.HTTPNotFoundError); ok {
+		return models.Application{}, nil
+	}
+	if err != nil {
+		return models.Application{}, err
 	}
 	return res.ToModel(), nil
 }

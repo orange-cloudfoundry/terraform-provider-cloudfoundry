@@ -7,10 +7,12 @@ import (
 	"code.cloudfoundry.org/cli/api/uaa"
 	uaaWrapper "code.cloudfoundry.org/cli/api/uaa/wrapper"
 	"code.cloudfoundry.org/cli/cf/api"
+	"code.cloudfoundry.org/cli/cf/api/appinstances"
 	"code.cloudfoundry.org/cli/cf/api/applications"
 	"code.cloudfoundry.org/cli/cf/api/authentication"
 	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
+	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/quotas"
 	"code.cloudfoundry.org/cli/cf/api/securitygroups"
@@ -43,6 +45,7 @@ type Client interface {
 	ServicePlanVisibilities() api.ServicePlanVisibilityRepository
 	ServicePlans() api.ServicePlanRepository
 	Services() api.ServiceRepository
+	ServiceBinding() api.ServiceBindingRepository
 	SpaceQuotas() spacequotas.SpaceQuotaRepository
 	Quotas() quotas.QuotaRepository
 	Config() Config
@@ -58,7 +61,9 @@ type Client interface {
 	FeatureFlags() featureflags.FeatureFlagRepository
 	EnvVarGroup() environmentvariablegroups.Repository
 	Applications() applications.Repository
+	AppInstances() appinstances.Repository
 	ApplicationBits() bitsmanager.ApplicationBitsRepository
+	Logs() logs.Repository
 	CCv3Client() *ccv3.Client
 }
 type CfClient struct {
@@ -79,6 +84,7 @@ type CfClient struct {
 	servicePlans                api.ServicePlanRepository
 	decrypter                   encryption.Decrypter
 	services                    api.ServiceRepository
+	serviceBinding              api.ServiceBindingRepository
 	domain                      api.DomainRepository
 	routingApi                  api.RoutingAPIRepository
 	route                       api.RouteRepository
@@ -89,8 +95,12 @@ type CfClient struct {
 	featureFlags                featureflags.FeatureFlagRepository
 	envVarGroup                 environmentvariablegroups.Repository
 	applications                applications.Repository
+	appInstances                appinstances.Repository
 	applicationBits             bitsmanager.ApplicationBitsRepository
+	logs                        logs.Repository
 	ccv3Client                  *ccv3.Client
+	uaaRepo                     authentication.UAARepository
+	uaaClient                   *uaa.Client
 }
 
 func NewCfClient(config Config) (Client, error) {
@@ -139,8 +149,24 @@ func (client *CfClient) Init() error {
 		repository,
 		logger,
 	)
-
 	client.gateways = gateways
+
+	client.uaaClient = uaa.NewClient(uaa.Config{
+		AppName:           client.config.AppName,
+		AppVersion:        client.config.AppVersion,
+		ClientID:          "cf",
+		ClientSecret:      "",
+		DialTimeout:       time.Duration(1) * time.Second,
+		SkipSSLValidation: client.config.SkipSSLValidation(),
+		URL:               ccClient.TokenEndpoint(),
+	})
+	client.uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(client.uaaClient, gateways.Config))
+	client.uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
+
+	client.uaaRepo = authentication.NewUAARepository(gateways.UAAGateway,
+		repository,
+		net.NewRequestDumper(trace.NewLogger(ioutil.Discard, false, "", "")),
+	)
 	err = client.Authenticate()
 	if err != nil {
 		return err
@@ -170,19 +196,8 @@ func (client *CfClient) LoadCCv3() error {
 	if err != nil {
 		return err
 	}
-	uaaClient := uaa.NewClient(uaa.Config{
-		AppName:           client.config.AppName,
-		AppVersion:        client.config.AppVersion,
-		ClientID:          "cf",
-		ClientSecret:      "",
-		DialTimeout:       time.Duration(1) * time.Second,
-		SkipSSLValidation: client.config.SkipSSLValidation(),
-		URL:               ccClient.UAA(),
-	})
-	uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(uaaClient, config))
-	uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
 
-	authWrapper.SetClient(uaaClient)
+	authWrapper.SetClient(client.uaaClient)
 	client.ccv3Client = ccClient
 	return nil
 }
@@ -190,13 +205,7 @@ func (client *CfClient) Authenticate() error {
 	if client.config.AccessToken() != "" {
 		return nil
 	}
-	gateways := client.gateways
-	repository := gateways.Config
-	uaaRepo := authentication.NewUAARepository(gateways.UAAGateway,
-		repository,
-		net.NewRequestDumper(trace.NewLogger(ioutil.Discard, false, "", "")),
-	)
-	err := uaaRepo.Authenticate(map[string]string{"username": client.config.Username, "password": client.config.Password})
+	err := client.uaaRepo.Authenticate(map[string]string{"username": client.config.Username, "password": client.config.Password})
 	if err != nil {
 		panic(err)
 		return err
@@ -224,6 +233,7 @@ func (client *CfClient) LoadRepositories() {
 	client.securityGroupsStagingBinder = secgroupstag.NewSecurityGroupsRepo(repository, gateways.CloudControllerGateway)
 	client.servicePlans = api.NewCloudControllerServicePlanRepository(repository, gateways.CloudControllerGateway)
 	client.services = api.NewCloudControllerServiceRepository(repository, gateways.CloudControllerGateway)
+	client.serviceBinding = api.NewCloudControllerServiceBindingRepository(repository, gateways.CloudControllerGateway)
 	client.domain = api.NewCloudControllerDomainRepository(repository, gateways.CloudControllerGateway)
 	client.routingApi = api.NewRoutingAPIRepository(repository, gateways.CloudControllerGateway)
 	client.route = api.NewCloudControllerRouteRepository(repository, gateways.CloudControllerGateway)
@@ -233,7 +243,9 @@ func (client *CfClient) LoadRepositories() {
 	client.featureFlags = featureflags.NewCloudControllerFeatureFlagRepository(repository, gateways.CloudControllerGateway)
 	client.envVarGroup = environmentvariablegroups.NewCloudControllerRepository(repository, gateways.CloudControllerGateway)
 	client.applications = applications.NewCloudControllerRepository(repository, gateways.CloudControllerGateway)
+	client.appInstances = appinstances.NewCloudControllerAppInstancesRepository(repository, gateways.CloudControllerGateway)
 	client.applicationBits = bitsmanager.NewCloudControllerApplicationBitsRepository(repository, gateways.CloudControllerGateway)
+	client.logs = logs.NewNoaaLogsRepository(repository, NewNOAAClient(repository, client.uaaClient), client.uaaRepo, 30*time.Second)
 }
 func (client CfClient) Gateways() CloudFoundryGateways {
 	return client.gateways
@@ -286,6 +298,9 @@ func (client CfClient) ServicePlans() api.ServicePlanRepository {
 func (client CfClient) Services() api.ServiceRepository {
 	return client.services
 }
+func (client CfClient) ServiceBinding() api.ServiceBindingRepository {
+	return client.serviceBinding
+}
 func (client CfClient) Decrypter() encryption.Decrypter {
 	return client.decrypter
 }
@@ -319,9 +334,15 @@ func (client CfClient) EnvVarGroup() environmentvariablegroups.Repository {
 func (client CfClient) Applications() applications.Repository {
 	return client.applications
 }
+func (client CfClient) AppInstances() appinstances.Repository {
+	return client.appInstances
+}
 func (client CfClient) ApplicationBits() bitsmanager.ApplicationBitsRepository {
 	return client.applicationBits
 }
 func (client CfClient) CCv3Client() *ccv3.Client {
 	return client.ccv3Client
+}
+func (client CfClient) Logs() logs.Repository {
+	return client.logs
 }
