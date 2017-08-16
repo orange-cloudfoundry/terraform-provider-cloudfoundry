@@ -101,6 +101,32 @@ type FakeFinderRepository struct {
 		result1 models.Space
 		result2 error
 	}
+	GetAppFromCfStub        func(appGuid string) (models.Application, error)
+	getAppFromCfMutex       sync.RWMutex
+	getAppFromCfArgsForCall []struct {
+		appGuid string
+	}
+	getAppFromCfReturns struct {
+		result1 models.Application
+		result2 error
+	}
+	getAppFromCfReturnsOnCall map[int]struct {
+		result1 models.Application
+		result2 error
+	}
+	GetServiceBindingsFromAppStub        func(appGuid string) ([]cf_client.ServiceBindingFields, error)
+	getServiceBindingsFromAppMutex       sync.RWMutex
+	getServiceBindingsFromAppArgsForCall []struct {
+		appGuid string
+	}
+	getServiceBindingsFromAppReturns struct {
+		result1 []cf_client.ServiceBindingFields
+		result2 error
+	}
+	getServiceBindingsFromAppReturnsOnCall map[int]struct {
+		result1 []cf_client.ServiceBindingFields
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -463,6 +489,108 @@ func (fake *FakeFinderRepository) GetSpaceFromCfReturnsOnCall(i int, result1 mod
 	}{result1, result2}
 }
 
+func (fake *FakeFinderRepository) GetAppFromCf(appGuid string) (models.Application, error) {
+	fake.getAppFromCfMutex.Lock()
+	ret, specificReturn := fake.getAppFromCfReturnsOnCall[len(fake.getAppFromCfArgsForCall)]
+	fake.getAppFromCfArgsForCall = append(fake.getAppFromCfArgsForCall, struct {
+		appGuid string
+	}{appGuid})
+	fake.recordInvocation("GetAppFromCf", []interface{}{appGuid})
+	fake.getAppFromCfMutex.Unlock()
+	if fake.GetAppFromCfStub != nil {
+		return fake.GetAppFromCfStub(appGuid)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getAppFromCfReturns.result1, fake.getAppFromCfReturns.result2
+}
+
+func (fake *FakeFinderRepository) GetAppFromCfCallCount() int {
+	fake.getAppFromCfMutex.RLock()
+	defer fake.getAppFromCfMutex.RUnlock()
+	return len(fake.getAppFromCfArgsForCall)
+}
+
+func (fake *FakeFinderRepository) GetAppFromCfArgsForCall(i int) string {
+	fake.getAppFromCfMutex.RLock()
+	defer fake.getAppFromCfMutex.RUnlock()
+	return fake.getAppFromCfArgsForCall[i].appGuid
+}
+
+func (fake *FakeFinderRepository) GetAppFromCfReturns(result1 models.Application, result2 error) {
+	fake.GetAppFromCfStub = nil
+	fake.getAppFromCfReturns = struct {
+		result1 models.Application
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFinderRepository) GetAppFromCfReturnsOnCall(i int, result1 models.Application, result2 error) {
+	fake.GetAppFromCfStub = nil
+	if fake.getAppFromCfReturnsOnCall == nil {
+		fake.getAppFromCfReturnsOnCall = make(map[int]struct {
+			result1 models.Application
+			result2 error
+		})
+	}
+	fake.getAppFromCfReturnsOnCall[i] = struct {
+		result1 models.Application
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFinderRepository) GetServiceBindingsFromApp(appGuid string) ([]cf_client.ServiceBindingFields, error) {
+	fake.getServiceBindingsFromAppMutex.Lock()
+	ret, specificReturn := fake.getServiceBindingsFromAppReturnsOnCall[len(fake.getServiceBindingsFromAppArgsForCall)]
+	fake.getServiceBindingsFromAppArgsForCall = append(fake.getServiceBindingsFromAppArgsForCall, struct {
+		appGuid string
+	}{appGuid})
+	fake.recordInvocation("GetServiceBindingsFromApp", []interface{}{appGuid})
+	fake.getServiceBindingsFromAppMutex.Unlock()
+	if fake.GetServiceBindingsFromAppStub != nil {
+		return fake.GetServiceBindingsFromAppStub(appGuid)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getServiceBindingsFromAppReturns.result1, fake.getServiceBindingsFromAppReturns.result2
+}
+
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppCallCount() int {
+	fake.getServiceBindingsFromAppMutex.RLock()
+	defer fake.getServiceBindingsFromAppMutex.RUnlock()
+	return len(fake.getServiceBindingsFromAppArgsForCall)
+}
+
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppArgsForCall(i int) string {
+	fake.getServiceBindingsFromAppMutex.RLock()
+	defer fake.getServiceBindingsFromAppMutex.RUnlock()
+	return fake.getServiceBindingsFromAppArgsForCall[i].appGuid
+}
+
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturns(result1 []cf_client.ServiceBindingFields, result2 error) {
+	fake.GetServiceBindingsFromAppStub = nil
+	fake.getServiceBindingsFromAppReturns = struct {
+		result1 []cf_client.ServiceBindingFields
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturnsOnCall(i int, result1 []cf_client.ServiceBindingFields, result2 error) {
+	fake.GetServiceBindingsFromAppStub = nil
+	if fake.getServiceBindingsFromAppReturnsOnCall == nil {
+		fake.getServiceBindingsFromAppReturnsOnCall = make(map[int]struct {
+			result1 []cf_client.ServiceBindingFields
+			result2 error
+		})
+	}
+	fake.getServiceBindingsFromAppReturnsOnCall[i] = struct {
+		result1 []cf_client.ServiceBindingFields
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeFinderRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -480,6 +608,10 @@ func (fake *FakeFinderRepository) Invocations() map[string][][]interface{} {
 	defer fake.getServiceFromCfMutex.RUnlock()
 	fake.getSpaceFromCfMutex.RLock()
 	defer fake.getSpaceFromCfMutex.RUnlock()
+	fake.getAppFromCfMutex.RLock()
+	defer fake.getAppFromCfMutex.RUnlock()
+	fake.getServiceBindingsFromAppMutex.RLock()
+	defer fake.getServiceBindingsFromAppMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

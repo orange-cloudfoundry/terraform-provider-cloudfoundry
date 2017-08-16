@@ -5,6 +5,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/models"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/common"
 	"log"
 	"os"
 	"path"
@@ -92,7 +93,7 @@ func (c CfBuildpackResource) generateFilename(buildpackPath string) (string, err
 	if buildpackPath == "" {
 		return "", nil
 	}
-	if IsWebURL(buildpackPath) {
+	if common.IsWebURL(buildpackPath) {
 		return path.Base(buildpackPath), nil
 	}
 	buildpackFileName := filepath.Base(buildpackPath)

@@ -15,6 +15,7 @@ This terraformp provider supports the use-case of managing a Cloud Foundry insta
 - [Isolation Segments](#isolation-segments)
 - [Stacks](#stacks)
 - [Environment Variable Group](#environment-variable-group)
+- [Applications](#applications)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
 
 ## Installations
@@ -26,7 +27,7 @@ This terraformp provider supports the use-case of managing a Cloud Foundry insta
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.7.3"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.0"
 ```
 
 #### via curl
@@ -616,6 +617,87 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 ```
 
 - **name**: (**Required**) Name of your service broker.
+
+### Applications
+
+This resource is used in order to deploy and update an application. It can see changes between code you have locally and code you have in your cloud foundry to do the update fastly (It compares a checksum from a chunk of data between local and remotely)
+
+**By default, when updating, your app will never shutdown**. It always use blue-green deployment when app bits changed, rename or scale number of instances instantly and do blue-green restage in all others modification.
+
+As a terraform resource, creating an app give you more control but can also be more painful than using the cli. 
+To be painless, [terraform modules](https://www.terraform.io/docs/modules/index.html) can be use to deploy you app like you could do with a `manifest.yml` file. 
+This can be found on https://github.com/orange-cloudfoundry/terraform-cloudfoundry-modules
+
+#### Resource
+
+```tf
+resource "cloudfoundry_app" "myapp" {
+  name = "myapp"
+  stack_id = "${data.cloudfoundry_stack.my_stack.id}"
+  space_id = "${data.cloudfoundry_space.space_mysuperspace.id}"
+  started = true
+  instances = 2
+  memory = "64M"
+  disk_quota = "1G"
+  command = ""
+  diego = true
+  buildpack = "php_buildpack"
+  health_check_type = "port"
+  health_check_http_endpoint = ""
+  health_check_timeout = ""
+  docker_image = ""
+  enable_ssh = false
+  ports = [8080]
+  routes = ["${cloudfoundry_route.route_superroute.id}"]
+  services = ["${cloudfoundry_service.svc_db.id}"]
+  env_var {
+    key = "MY_ENV_KEY"
+    value = "myvalue"
+  } # you can have, of course, multiple env_var
+}
+```
+
+- **name**: (**Required**) Name of your application.
+- **space_id**: (**Required**) Space id created from resource or data source [spaces](#spaces).
+- **stack_id**: (**Required**) Stack id retrieve from data source [Stacks](#stacks).
+- **started**: *(Optional, default: `true`)* State of your application (should be start or not).
+- **instances**: *(Optional, default: `1`)*  The number of instances of the app to run.
+- **memory**: *(Optional, default: `1G`)* The amount of memory each instance should have.
+- **disk_quota**: *(Optional, default: `1G`)* The maximum amount of disk available to an instance of an app.
+- **command**: *(Optional, default: `NULL`)* The command to start an app after it is staged.
+- **diego**: *(Optional, default: `true`)* Use diego to stage and to run when available (Diego should be always available because DEA is not supported anymore).
+- **buildpack**: *(Optional, default: `NULL`)* Buildpack to build the app. 3 options: a) Blank means autodetection; b) A Git Url pointing to a buildpack; c) Name of an installed buildpack.
+- **health_check_type**: *(Optional, default: `port`)* Type of health check to perform. Others values are: 
+  - http (Diego only)
+  - port
+  - process
+  - none
+- **health_check_http_endpoint**: *(Optional, default: `NULL`)* Endpoint called to determine if the app is healthy. (Can  be use only when check type is http)
+- **health_check_timeout**: *(Optional, default: `NULL`)* Timeout in seconds for health checking of an staged app when starting up.
+- **docker_image**: *(Optional, default: `NULL`)* Name of the Docker image containing the app. The "diego_docker" feature flag must be enabled in order to create Docker image apps.
+- **enable_ssh**: *(Optional, default: `false`)* Enable SSHing into the app. Supported for Diego only.
+- **ports**: *(Optional, default: `8080` when diego is set to `true`)* List of ports on which application may listen. Overwrites previously configured ports. 
+  Ports must be in range 1024-65535. Supported for Diego only. (**Note**: This is a copy of the default behaviour of cloud foundry cli, it always create a default port to 8080 when using diego backend)
+- **routes**: *(Optional, default: `NULL`)* List of route guid retrieve from resource or data source [routes](#routes) to attach routes to your app.  
+- **services**: *(Optional, default: `NULL`)* List of service guid retrieve from resource or data source [services](#services) to bind services to your app.
+- **env_var**: *(Optional, default: `NULL`)* Add any variable you want to the app environment:
+  - **key**: (**Required**) Env var key.
+  - **value**: (**Required**) Env var value.
+
+
+#### Data source
+
+**Note**: every parameters from resource which are not used here are marked as computed and will be filled.
+
+```tf
+resource "cloudfoundry_service_broker" "myapp" {
+  name = "mysuperbroker"
+  space_id = "${data.cloudfoundry_space.space_mysuperspace.id}"
+}
+```
+
+- **name**: (**Required**) Name of your service broker. If `space_id` it will try to find the first matching app found in all spaces you have access to.
+- **space_id**: *(Optional, default: `null`)* Space id created from resource or data source [spaces](#spaces).
 
 ## Enable password encryption
 

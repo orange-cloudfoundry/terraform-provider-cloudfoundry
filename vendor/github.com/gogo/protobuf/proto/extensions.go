@@ -37,7 +37,6 @@ package proto
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strconv"
 	"sync"
@@ -101,13 +100,15 @@ type Extension struct {
 }
 
 // SetRawExtension is for testing only.
-func SetRawExtension(base Message, id int32, b []byte) {
+func SetRawExtension(base extendableProto, id int32, b []byte) {
 	if ebase, ok := base.(extensionsMap); ok {
 		ebase.ExtensionMap()[id] = Extension{enc: b}
 	} else if ebase, ok := base.(extensionsBytes); ok {
 		clearExtension(base, id)
 		ext := ebase.GetExtensions()
 		*ext = append(*ext, b...)
+	} else {
+		panic("unreachable")
 	}
 }
 
@@ -231,7 +232,7 @@ func sizeExtensionMap(m map[int32]Extension) (n int) {
 }
 
 // HasExtension returns whether the given extension is present in pb.
-func HasExtension(pb Message, extension *ExtensionDesc) bool {
+func HasExtension(pb extendableProto, extension *ExtensionDesc) bool {
 	// TODO: Check types, field numbers, etc.?
 	if epb, doki := pb.(extensionsMap); doki {
 		_, ok := epb.ExtensionMap()[extension.Field]
@@ -256,7 +257,7 @@ func HasExtension(pb Message, extension *ExtensionDesc) bool {
 		}
 		return false
 	}
-	return false
+	panic("unreachable")
 }
 
 func deleteExtension(pb extensionsBytes, theFieldNum int32, offset int) int {
@@ -279,7 +280,7 @@ func deleteExtension(pb extensionsBytes, theFieldNum int32, offset int) int {
 	return -1
 }
 
-func clearExtension(pb Message, fieldNum int32) {
+func clearExtension(pb extendableProto, fieldNum int32) {
 	if epb, doki := pb.(extensionsMap); doki {
 		delete(epb.ExtensionMap(), fieldNum)
 	} else if epb, doki := pb.(extensionsBytes); doki {
@@ -287,23 +288,21 @@ func clearExtension(pb Message, fieldNum int32) {
 		for offset != -1 {
 			offset = deleteExtension(epb, fieldNum, offset)
 		}
+	} else {
+		panic("unreachable")
 	}
 }
 
 // ClearExtension removes the given extension from pb.
-func ClearExtension(pb Message, extension *ExtensionDesc) {
+func ClearExtension(pb extendableProto, extension *ExtensionDesc) {
 	// TODO: Check types, field numbers, etc.?
 	clearExtension(pb, extension.Field)
 }
 
 // GetExtension parses and returns the given extension of pb.
 // If the extension is not present it returns ErrMissingExtension.
-func GetExtension(pb Message, extension *ExtensionDesc) (interface{}, error) {
-	epb, ok := pb.(extendableProto)
-	if !ok {
-		return nil, errors.New("proto: not an extendable proto")
-	}
-	if err := checkExtensionTypes(epb, extension); err != nil {
+func GetExtension(pb extendableProto, extension *ExtensionDesc) (interface{}, error) {
+	if err := checkExtensionTypes(pb, extension); err != nil {
 		return nil, err
 	}
 
@@ -311,9 +310,7 @@ func GetExtension(pb Message, extension *ExtensionDesc) (interface{}, error) {
 		emap := epb.ExtensionMap()
 		e, ok := emap[extension.Field]
 		if !ok {
-			// defaultExtensionValue returns the default value or
-			// ErrMissingExtension if there is no default.
-			return defaultExtensionValue(extension)
+			return nil, ErrMissingExtension
 		}
 		if e.value != nil {
 			// Already decoded. Check the descriptor, though.
@@ -358,44 +355,8 @@ func GetExtension(pb Message, extension *ExtensionDesc) (interface{}, error) {
 			}
 			o += n + l
 		}
-		return defaultExtensionValue(extension)
 	}
-	return nil, errors.New("proto: not an extendable proto")
-}
-
-// defaultExtensionValue returns the default value for extension.
-// If no default for an extension is defined ErrMissingExtension is returned.
-func defaultExtensionValue(extension *ExtensionDesc) (interface{}, error) {
-	t := reflect.TypeOf(extension.ExtensionType)
-	props := extensionProperties(extension)
-
-	sf, _, err := fieldDefault(t, props)
-	if err != nil {
-		return nil, err
-	}
-
-	if sf == nil || sf.value == nil {
-		// There is no default value.
-		return nil, ErrMissingExtension
-	}
-
-	if t.Kind() != reflect.Ptr {
-		// We do not need to return a Ptr, we can directly return sf.value.
-		return sf.value, nil
-	}
-
-	// We need to return an interface{} that is a pointer to sf.value.
-	value := reflect.New(t).Elem()
-	value.Set(reflect.New(value.Type().Elem()))
-	if sf.kind == reflect.Int32 {
-		// We may have an int32 or an enum, but the underlying data is int32.
-		// Since we can't set an int32 into a non int32 reflect.value directly
-		// set it as a int32.
-		value.Elem().SetInt(int64(sf.value.(int32)))
-	} else {
-		value.Elem().Set(reflect.ValueOf(sf.value))
-	}
-	return value.Interface(), nil
+	panic("unreachable")
 }
 
 // decodeExtension decodes an extension encoded in b.
@@ -403,6 +364,7 @@ func decodeExtension(b []byte, extension *ExtensionDesc) (interface{}, error) {
 	o := NewBuffer(b)
 
 	t := reflect.TypeOf(extension.ExtensionType)
+	rep := extension.repeated()
 
 	props := extensionProperties(extension)
 
@@ -424,7 +386,7 @@ func decodeExtension(b []byte, extension *ExtensionDesc) (interface{}, error) {
 			return nil, err
 		}
 
-		if o.index >= len(o.buf) {
+		if !rep || o.index >= len(o.buf) {
 			break
 		}
 	}
@@ -436,7 +398,8 @@ func decodeExtension(b []byte, extension *ExtensionDesc) (interface{}, error) {
 func GetExtensions(pb Message, es []*ExtensionDesc) (extensions []interface{}, err error) {
 	epb, ok := pb.(extendableProto)
 	if !ok {
-		return nil, errors.New("proto: not an extendable proto")
+		err = errors.New("proto: not an extendable proto")
+		return
 	}
 	extensions = make([]interface{}, len(es))
 	for i, e := range es {
@@ -460,14 +423,6 @@ func SetExtension(pb extendableProto, extension *ExtensionDesc, value interface{
 	if typ != reflect.TypeOf(value) {
 		return errors.New("proto: bad extension value type")
 	}
-	// nil extension values need to be caught early, because the
-	// encoder can't distinguish an ErrNil due to a nil extension
-	// from an ErrNil due to a missing field. Extensions are
-	// always optional, so the encoder would just swallow the error
-	// and drop all the extensions from the encoded message.
-	if reflect.ValueOf(value).IsNil() {
-		return fmt.Errorf("proto: SetExtension called with nil value of type %T", value)
-	}
 	return setExtension(pb, extension, value)
 }
 
@@ -488,20 +443,6 @@ func setExtension(pb extendableProto, extension *ExtensionDesc, value interface{
 		*ext = append(*ext, p.buf...)
 	}
 	return nil
-}
-
-// ClearAllExtensions clears all extensions from pb.
-func ClearAllExtensions(pb Message) {
-	if epb, doki := pb.(extensionsMap); doki {
-		m := epb.ExtensionMap()
-		for k := range m {
-			delete(m, k)
-		}
-	} else if epb, doki := pb.(extensionsBytes); doki {
-		ext := epb.GetExtensions()
-		*ext = []byte{}
-	}
-	return
 }
 
 // A global registry of extensions.

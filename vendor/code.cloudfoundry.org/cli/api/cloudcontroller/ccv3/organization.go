@@ -15,7 +15,10 @@ type Organization struct {
 
 // GetOrganizations lists organizations with optional filters.
 func (client *Client) GetOrganizations(query url.Values) ([]Organization, Warnings, error) {
-	request, err := client.newHTTPRequest(requestOptions{})
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetOrgsRequest,
+		Query:       query,
+	})
 	if err != nil {
 		return nil, nil, err
 	}

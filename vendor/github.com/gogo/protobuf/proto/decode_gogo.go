@@ -30,6 +30,51 @@ import (
 	"reflect"
 )
 
+// Decode a reference to a bool pointer.
+func (o *Buffer) dec_ref_bool(p *Properties, base structPointer) error {
+	u, err := p.valDec(o)
+	if err != nil {
+		return err
+	}
+	if len(o.bools) == 0 {
+		o.bools = make([]bool, boolPoolSize)
+	}
+	o.bools[0] = u != 0
+	*structPointer_RefBool(base, p.field) = o.bools[0]
+	o.bools = o.bools[1:]
+	return nil
+}
+
+// Decode a reference to an int32 pointer.
+func (o *Buffer) dec_ref_int32(p *Properties, base structPointer) error {
+	u, err := p.valDec(o)
+	if err != nil {
+		return err
+	}
+	refWord32_Set(structPointer_RefWord32(base, p.field), o, uint32(u))
+	return nil
+}
+
+// Decode a reference to an int64 pointer.
+func (o *Buffer) dec_ref_int64(p *Properties, base structPointer) error {
+	u, err := p.valDec(o)
+	if err != nil {
+		return err
+	}
+	refWord64_Set(structPointer_RefWord64(base, p.field), o, u)
+	return nil
+}
+
+// Decode a reference to a string pointer.
+func (o *Buffer) dec_ref_string(p *Properties, base structPointer) error {
+	s, err := o.DecodeStringBytes()
+	if err != nil {
+		return err
+	}
+	*structPointer_RefString(base, p.field) = s
+	return nil
+}
+
 // Decode a reference to a struct pointer.
 func (o *Buffer) dec_ref_struct_message(p *Properties, base structPointer) (err error) {
 	raw, e := o.DecodeRawBytes(false)
@@ -115,8 +160,14 @@ func setCustomType(base structPointer, f field, value interface{}) {
 		oldHeader.Len = v.Len()
 		oldHeader.Cap = v.Cap()
 	default:
+		l := 1
 		size := reflect.TypeOf(value).Elem().Size()
-		structPointer_Copy(toStructPointer(reflect.ValueOf(value)), structPointer_Add(base, f), int(size))
+		if kind == reflect.Array {
+			l = reflect.TypeOf(value).Elem().Len()
+			size = reflect.TypeOf(value).Size()
+		}
+		total := int(size) * l
+		structPointer_Copy(toStructPointer(reflect.ValueOf(value)), structPointer_Add(base, f), total)
 	}
 }
 

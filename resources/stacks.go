@@ -15,7 +15,7 @@ func (c CfStackResource) DataSourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": &schema.Schema{
 			Type:     schema.TypeString,
-			Required: true,
+			Optional: true,
 		},
 		"first": &schema.Schema{
 			Type:     schema.TypeBool,

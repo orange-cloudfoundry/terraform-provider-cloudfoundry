@@ -4,8 +4,11 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
 	"code.cloudfoundry.org/cli/cf/api"
 	"code.cloudfoundry.org/cli/cf/api/apifakes"
+	"code.cloudfoundry.org/cli/cf/api/appinstances"
+	"code.cloudfoundry.org/cli/cf/api/applications"
 	"code.cloudfoundry.org/cli/cf/api/environmentvariablegroups"
 	"code.cloudfoundry.org/cli/cf/api/featureflags"
+	"code.cloudfoundry.org/cli/cf/api/logs"
 	"code.cloudfoundry.org/cli/cf/api/organizations"
 	"code.cloudfoundry.org/cli/cf/api/organizations/organizationsfakes"
 	"code.cloudfoundry.org/cli/cf/api/quotas"
@@ -23,6 +26,8 @@ import (
 	"code.cloudfoundry.org/cli/cf/api/spaces"
 	"code.cloudfoundry.org/cli/cf/api/spaces/spacesfakes"
 	"code.cloudfoundry.org/cli/cf/api/stacks"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager/bitsmanagerfakes"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/encryption/fake_encryption"
@@ -45,12 +50,14 @@ type FakeCfClient struct {
 	servicePlans                *apifakes.FakeServicePlanRepository
 	decrypter                   encryption.Decrypter
 	services                    *apifakes.FakeServiceRepository
+	serviceBinding              *apifakes.FakeServiceBindingRepository
 	domain                      *apifakes.FakeDomainRepository
 	routingApi                  *apifakes.FakeRoutingAPIRepository
 	route                       *apifakes.FakeRouteRepository
 	routeServiceBinding         *apifakes.FakeRouteServiceBindingRepository
 	userProvidedService         *apifakes.FakeUserProvidedServiceInstanceRepository
 	finder                      *FakeFinderRepository
+	applicationBits             *bitsmanagerfakes.FakeApplicationBitsRepository
 }
 
 func NewFakeCfClient() *FakeCfClient {
@@ -79,11 +86,13 @@ func (c *FakeCfClient) Init() {
 	c.securityGroupsStagingBinder = new(secgroupstagfake.FakeSecurityGroupsRepo)
 	c.servicePlans = new(apifakes.FakeServicePlanRepository)
 	c.services = new(apifakes.FakeServiceRepository)
+	c.serviceBinding = new(apifakes.FakeServiceBindingRepository)
 	c.domain = new(apifakes.FakeDomainRepository)
 	c.routingApi = new(apifakes.FakeRoutingAPIRepository)
 	c.route = new(apifakes.FakeRouteRepository)
 	c.routeServiceBinding = new(apifakes.FakeRouteServiceBindingRepository)
 	c.userProvidedService = new(apifakes.FakeUserProvidedServiceInstanceRepository)
+	c.applicationBits = new(bitsmanagerfakes.FakeApplicationBitsRepository)
 	c.finder = new(FakeFinderRepository)
 	c.decrypter = fake_encryption.NewFakeDecrypter()
 }
@@ -135,6 +144,9 @@ func (client FakeCfClient) ServicePlans() api.ServicePlanRepository {
 func (client FakeCfClient) Services() api.ServiceRepository {
 	return client.services
 }
+func (client FakeCfClient) ServiceBinding() api.ServiceBindingRepository {
+	return client.serviceBinding
+}
 func (client FakeCfClient) Decrypter() encryption.Decrypter {
 	return client.decrypter
 }
@@ -171,6 +183,18 @@ func (client FakeCfClient) EnvVarGroup() environmentvariablegroups.Repository {
 }
 func (client FakeCfClient) CCv3Client() *ccv3.Client {
 	return &ccv3.Client{}
+}
+func (client FakeCfClient) Applications() applications.Repository {
+	return applications.CloudControllerRepository{}
+}
+func (client FakeCfClient) AppInstances() appinstances.Repository {
+	return appinstances.CloudControllerAppInstancesRepository{}
+}
+func (client FakeCfClient) ApplicationBits() bitsmanager.ApplicationBitsRepository {
+	return client.applicationBits
+}
+func (client FakeCfClient) Logs() logs.Repository {
+	return &logs.NoaaLogsRepository{}
 }
 
 // get Fake call -------
@@ -220,6 +244,9 @@ func (client FakeCfClient) FakeServicePlans() *apifakes.FakeServicePlanRepositor
 func (client FakeCfClient) FakeServices() *apifakes.FakeServiceRepository {
 	return client.services
 }
+func (client FakeCfClient) FakeServiceBinding() *apifakes.FakeServiceBindingRepository {
+	return client.serviceBinding
+}
 func (client FakeCfClient) FakeDomain() api.DomainRepository {
 	return client.domain
 }
@@ -237,4 +264,7 @@ func (client FakeCfClient) FakeUserProvidedService() *apifakes.FakeUserProvidedS
 }
 func (client FakeCfClient) FakeFinder() *FakeFinderRepository {
 	return client.finder
+}
+func (client FakeCfClient) FakeApplicationBits() *bitsmanagerfakes.FakeApplicationBitsRepository {
+	return client.applicationBits
 }
