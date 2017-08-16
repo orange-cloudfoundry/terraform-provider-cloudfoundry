@@ -12,7 +12,7 @@ if [[ "$?" != "0" ]]; then
     echo "you must have terraform installed"
 fi
 tf_version=$(terraform --version | awk '{print $2}')
-tf_version=${tf_version:1:3}
+tf_version=${tf_version:1:4}
 
 if [[ "x$PROVIDER_CLOUDFOUNDRY_VERSION" == "x" ]]; then
     VERSION=$(curl -s https://api.github.com/repos/${OWNER}/${REPO_NAME}/releases/latest | grep tag_name | head -n 1 | cut -d '"' -f 4)
