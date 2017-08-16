@@ -17,8 +17,9 @@ type FinderRepository interface {
 	GetServiceFromCf(svcGuid string) (models.ServiceInstance, error)
 	GetSpaceFromCf(spaceGuid string) (models.Space, error)
 	GetAppFromCf(appGuid string) (models.Application, error)
-	GetServiceBindingsFromApp(appGuid string) ([]models.ServiceBindingFields, error)
+	GetServiceBindingsFromApp(appGuid string) ([]ServiceBindingFields, error)
 }
+
 type Finder struct {
 	config    Config
 	ccGateway net.Gateway
@@ -162,14 +163,14 @@ func (f Finder) GetSpaceFromCf(spaceGuid string) (models.Space, error) {
 	}
 	return res.ToModel(), nil
 }
-func (f Finder) GetServiceBindingsFromApp(appGuid string) ([]models.ServiceBindingFields, error) {
-	serviceBindings := []models.ServiceBindingFields{}
+func (f Finder) GetServiceBindingsFromApp(appGuid string) ([]ServiceBindingFields, error) {
+	serviceBindings := []ServiceBindingFields{}
 	err := f.ccGateway.ListPaginatedResources(
 		f.config.ApiEndpoint,
 		fmt.Sprintf("/v2/apps/%s/service_bindings", appGuid),
-		resources.ServiceBindingResource{},
+		ServiceBindingResource{},
 		func(resource interface{}) bool {
-			if serviceBindingResource, ok := resource.(resources.ServiceBindingResource); ok {
+			if serviceBindingResource, ok := resource.(ServiceBindingResource); ok {
 				serviceBindings = append(serviceBindings, serviceBindingResource.ToFields())
 			}
 			return true

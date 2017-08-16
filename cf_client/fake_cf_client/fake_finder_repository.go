@@ -114,17 +114,17 @@ type FakeFinderRepository struct {
 		result1 models.Application
 		result2 error
 	}
-	GetServiceBindingsFromAppStub        func(appGuid string) ([]models.ServiceBindingFields, error)
+	GetServiceBindingsFromAppStub        func(appGuid string) ([]cf_client.ServiceBindingFields, error)
 	getServiceBindingsFromAppMutex       sync.RWMutex
 	getServiceBindingsFromAppArgsForCall []struct {
 		appGuid string
 	}
 	getServiceBindingsFromAppReturns struct {
-		result1 []models.ServiceBindingFields
+		result1 []cf_client.ServiceBindingFields
 		result2 error
 	}
 	getServiceBindingsFromAppReturnsOnCall map[int]struct {
-		result1 []models.ServiceBindingFields
+		result1 []cf_client.ServiceBindingFields
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -540,7 +540,7 @@ func (fake *FakeFinderRepository) GetAppFromCfReturnsOnCall(i int, result1 model
 	}{result1, result2}
 }
 
-func (fake *FakeFinderRepository) GetServiceBindingsFromApp(appGuid string) ([]models.ServiceBindingFields, error) {
+func (fake *FakeFinderRepository) GetServiceBindingsFromApp(appGuid string) ([]cf_client.ServiceBindingFields, error) {
 	fake.getServiceBindingsFromAppMutex.Lock()
 	ret, specificReturn := fake.getServiceBindingsFromAppReturnsOnCall[len(fake.getServiceBindingsFromAppArgsForCall)]
 	fake.getServiceBindingsFromAppArgsForCall = append(fake.getServiceBindingsFromAppArgsForCall, struct {
@@ -569,24 +569,24 @@ func (fake *FakeFinderRepository) GetServiceBindingsFromAppArgsForCall(i int) st
 	return fake.getServiceBindingsFromAppArgsForCall[i].appGuid
 }
 
-func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturns(result1 []models.ServiceBindingFields, result2 error) {
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturns(result1 []cf_client.ServiceBindingFields, result2 error) {
 	fake.GetServiceBindingsFromAppStub = nil
 	fake.getServiceBindingsFromAppReturns = struct {
-		result1 []models.ServiceBindingFields
+		result1 []cf_client.ServiceBindingFields
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturnsOnCall(i int, result1 []models.ServiceBindingFields, result2 error) {
+func (fake *FakeFinderRepository) GetServiceBindingsFromAppReturnsOnCall(i int, result1 []cf_client.ServiceBindingFields, result2 error) {
 	fake.GetServiceBindingsFromAppStub = nil
 	if fake.getServiceBindingsFromAppReturnsOnCall == nil {
 		fake.getServiceBindingsFromAppReturnsOnCall = make(map[int]struct {
-			result1 []models.ServiceBindingFields
+			result1 []cf_client.ServiceBindingFields
 			result2 error
 		})
 	}
 	fake.getServiceBindingsFromAppReturnsOnCall[i] = struct {
-		result1 []models.ServiceBindingFields
+		result1 []cf_client.ServiceBindingFields
 		result2 error
 	}{result1, result2}
 }

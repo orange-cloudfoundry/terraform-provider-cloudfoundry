@@ -134,12 +134,34 @@ func (c CfAppsResource) createOrUpdate(d *schema.ResourceData, meta interface{})
 		_, err := client.Applications().Update(d.Id(), models.AppParams{Name: &name, InstanceCount: &instances})
 		return err
 	}
-	isBitsDiff, err := c.IsBitsDiff(d, meta)
-	if err != nil {
-		return err
+	if c.IsBitsDiff(d) && d.Get("no_blue_green_deploy").(bool) {
+		a := models.Application{}
+		a.GUID = d.Id()
+		err := c.stopApp(client, a)
+		if err != nil {
+			return err
+		}
+		err = c.SendBits(d, meta)
+		if err != nil {
+			return err
+		}
+		return c.startApp(client, a)
 	}
-	if isBitsDiff {
+	if c.IsBitsDiff(d) {
 		return c.updateBgDeploy(d, meta)
+	}
+	if d.Get("no_blue_green_restage").(bool) {
+		appParams, err := c.resourceObject(d)
+		if err != nil {
+			return err
+		}
+		a := models.Application{}
+		a.GUID = d.Id()
+		_, err = client.Applications().Update(d.Id(), appParams.AppParams)
+		if err != nil {
+			return err
+		}
+		return c.restartApp(client, a)
 	}
 	return c.updateBgRestage(d, meta)
 }
@@ -488,26 +510,28 @@ func (c CfAppsResource) SendBits(d *schema.ResourceData, meta interface{}) error
 	d.Set("remote_sha1", rmtSha1)
 	return nil
 }
-
-func (c CfAppsResource) IsBitsDiff(d *schema.ResourceData, meta interface{}) (bool, error) {
+func (c CfAppsResource) IsBitsDiff(d *schema.ResourceData) bool {
+	return d.HasChange("bits_has_changed")
+}
+func (c CfAppsResource) updateBitsDiff(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	bm := c.MakeBitsManager(meta)
 	isDiffLocal, sha1Local, err := bm.IsDiff(d.Get("path").(string), d.Get("path_sha1").(string))
 	if err != nil {
-		return true, err
+		return err
 	}
 	isDiffRmt, sha1Rmt, err := client.ApplicationBits().IsDiff(d.Id(), d.Get("remote_sha1").(string))
 	if err != nil {
-		return true, err
+		return err
 	}
 	if isDiffLocal || isDiffRmt {
 		d.Set("path_sha1", sha1Local)
 		d.Set("remote_sha1", sha1Rmt)
 		d.Set("bits_has_changed", "modified")
-		return true, nil
+		return nil
 	}
 	d.Set("bits_has_changed", "")
-	return false, nil
+	return nil
 }
 func (c CfAppsResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
@@ -555,11 +579,10 @@ func (c CfAppsResource) Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("routes", schemaRoutes)
 	schemaServices := schema.NewSet(d.Get("services").(*schema.Set).F, make([]interface{}, 0))
 	for _, binding := range currentBindings {
-		schemaServices.Add(binding.GUID)
+		schemaServices.Add(binding.ServiceInstanceGUID)
 	}
 	d.Set("services", schemaServices)
-	c.IsBitsDiff(d, meta)
-	return nil
+	return c.updateBitsDiff(d, meta)
 }
 func (c CfAppsResource) Update(d *schema.ResourceData, meta interface{}) error {
 	return c.createOrUpdate(d, meta)
@@ -568,8 +591,35 @@ func (c CfAppsResource) Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
 	return client.Applications().Delete(d.Id())
 }
+func (c CfAppsResource) existsWithoutSpaceId(d *schema.ResourceData, meta interface{}) (bool, error) {
+	client := meta.(cf_client.Client)
+	orgs, err := client.Organizations().ListOrgs(-1)
+	if err != nil {
+		return false, err
+	}
+
+	for _, org := range orgs {
+		err = client.Spaces().ListSpacesFromOrg(org.GUID, func(space models.Space) bool {
+			for _, app := range space.Applications {
+				if app.Name == d.Get("name").(string) {
+					d.SetId(app.GUID)
+					return false
+				}
+			}
+			return true
+		})
+		if err != nil {
+			return false, err
+		}
+	}
+	return d.Id() != "", nil
+}
 func (c CfAppsResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
+
+	if d.Get("space_id").(string) == "" {
+		return c.existsWithoutSpaceId(d, meta)
+	}
 	if d.Id() != "" {
 		app, err := client.Finder().GetAppFromCf(d.Id())
 		if err != nil {
@@ -701,6 +751,14 @@ func (c CfAppsResource) Schema() map[string]*schema.Schema {
 				return hashcode.String(buf.String())
 			},
 		},
+		"no_blue_green_restage": &schema.Schema{
+			Type:     schema.TypeBool,
+			Optional: true,
+		},
+		"no_blue_green_deploy": &schema.Schema{
+			Type:     schema.TypeBool,
+			Optional: true,
+		},
 		"path": &schema.Schema{
 			Type:     schema.TypeString,
 			Required: true,
@@ -718,4 +776,10 @@ func (c CfAppsResource) Schema() map[string]*schema.Schema {
 			Optional: true,
 		},
 	}
+}
+func (c CfAppsResource) DataSourceSchema() map[string]*schema.Schema {
+	return CreateDataSourceSchema(c)
+}
+func (c CfAppsResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	return CreateDataSourceReadFunc(c)(d, meta)
 }
