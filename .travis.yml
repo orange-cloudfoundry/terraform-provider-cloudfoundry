@@ -11,7 +11,7 @@ script:
     echo "You need to run `go fmt`"
     exit 1
   fi
-- go test ./... -v
+- go test `go list ./... | grep -v vendor`
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
 - git checkout v0.10.1
