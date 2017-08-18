@@ -5,6 +5,7 @@ import (
 	"code.cloudfoundry.org/cli/cf/models"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"github.com/viant/toolbox"
 	"log"
 )
 
@@ -30,9 +31,8 @@ func (c CfSpaceResource) resourceObject(d *schema.ResourceData) models.Space {
 
 	return repo
 }
-func (c CfSpaceResource) extractSecGroups(d *schema.ResourceData) []models.SecurityGroupFields {
+func extractSecGroupsFromSet(secGroupsSet *schema.Set) []models.SecurityGroupFields {
 	secGroups := make([]models.SecurityGroupFields, 0)
-	secGroupsSet := d.Get("sec_groups").(*schema.Set)
 	for _, secGroup := range secGroupsSet.List() {
 		secGroups = append(
 			secGroups,
@@ -42,6 +42,9 @@ func (c CfSpaceResource) extractSecGroups(d *schema.ResourceData) []models.Secur
 		)
 	}
 	return secGroups
+}
+func (c CfSpaceResource) extractSecGroups(d *schema.ResourceData) []models.SecurityGroupFields {
+	return extractSecGroupsFromSet(d.Get("sec_groups").(*schema.Set))
 }
 
 func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error {
@@ -63,7 +66,7 @@ func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	spaceCf.SecurityGroups = c.filterSecGroup(client, spaceCf.SecurityGroups)
+	spaceCf.SecurityGroups = c.filterSecGroup(client, spaceCf.SecurityGroups, space.SecurityGroups)
 	err = c.updateSecGroups(client, spaceCf.SecurityGroups, space.SecurityGroups, spaceCf.GUID)
 	if err != nil {
 		return err
@@ -78,7 +81,8 @@ func (c CfSpaceResource) Create(d *schema.ResourceData, meta interface{}) error 
 }
 func (c CfSpaceResource) updateSecGroups(client cf_client.Client, secGroupFrom, secGroupTo []models.SecurityGroupFields, spaceId string) error {
 	missingSecGroupsInFrom := GetMissingSecGroup(secGroupTo, secGroupFrom)
-	if len(missingSecGroupsInFrom) == 0 {
+	missingSecGroupsInTo := GetMissingSecGroup(secGroupFrom, secGroupTo)
+	if len(missingSecGroupsInFrom) == 0 && len(missingSecGroupsInTo) == 0 {
 		return nil
 	}
 	for _, secGroup := range missingSecGroupsInFrom {
@@ -87,7 +91,6 @@ func (c CfSpaceResource) updateSecGroups(client cf_client.Client, secGroupFrom, 
 			return err
 		}
 	}
-	missingSecGroupsInTo := GetMissingSecGroup(secGroupFrom, secGroupTo)
 	for _, secGroup := range missingSecGroupsInTo {
 		err := client.SecurityGroupsSpaceBinder().UnbindSpace(secGroup.GUID, spaceId)
 		if err != nil {
@@ -96,7 +99,7 @@ func (c CfSpaceResource) updateSecGroups(client cf_client.Client, secGroupFrom, 
 	}
 	return nil
 }
-func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields []models.SecurityGroupFields) []models.SecurityGroupFields {
+func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields, secGroupFieldsFromTf []models.SecurityGroupFields) []models.SecurityGroupFields {
 	secGroupsFiltered := make([]models.SecurityGroupFields, 0)
 	for _, secGroupField := range secGroupFields {
 		secGroup, _ := client.Finder().GetSecGroupFromCf(secGroupField.GUID)
@@ -105,7 +108,19 @@ func (c CfSpaceResource) filterSecGroup(client cf_client.Client, secGroupFields 
 		}
 		secGroupsFiltered = append(secGroupsFiltered, secGroupField)
 	}
-	return secGroupsFiltered
+	return c.filterSecGroupByTerraformExist(client, secGroupsFiltered, secGroupFieldsFromTf)
+}
+func (c CfSpaceResource) filterSecGroupByTerraformExist(client cf_client.Client, secGroupFields, secGroupFieldsFromTf []models.SecurityGroupFields) []models.SecurityGroupFields {
+	finalSecGroups := make([]models.SecurityGroupFields, 0)
+	toolbox.FilterSliceElements(secGroupFields, func(item models.SecurityGroupFields) bool {
+		for _, secGroup := range secGroupFieldsFromTf {
+			if item.GUID == secGroup.GUID {
+				return true
+			}
+		}
+		return false
+	}, &finalSecGroups)
+	return finalSecGroups
 }
 func (c CfSpaceResource) Read(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
@@ -123,7 +138,8 @@ func (c CfSpaceResource) Read(d *schema.ResourceData, meta interface{}) error {
 		d.SetId("")
 		return nil
 	}
-	space.SecurityGroups = c.filterSecGroup(client, space.SecurityGroups)
+	currentSecGroups := extractSecGroupsFromSet(d.Get("sec_groups").(*schema.Set))
+	space.SecurityGroups = c.filterSecGroup(client, space.SecurityGroups, currentSecGroups)
 	d.Set("quota_id", space.SpaceQuotaGUID)
 	secGroupsSchema := schema.NewSet(d.Get("sec_groups").(*schema.Set).F, make([]interface{}, 0))
 	for _, secGroup := range space.SecurityGroups {
@@ -151,6 +167,10 @@ func (c CfSpaceResource) Update(d *schema.ResourceData, meta interface{}) error 
 	}
 	if spaceCf.AllowSSH != space.AllowSSH {
 		client.Spaces().SetAllowSSH(space.GUID, space.AllowSSH)
+	}
+	if d.HasChange("sec_groups") {
+		currentTfSecGroups, _ := d.GetChange("sec_groups")
+		spaceCf.SecurityGroups = c.filterSecGroupByTerraformExist(client, spaceCf.SecurityGroups, extractSecGroupsFromSet(currentTfSecGroups.(*schema.Set)))
 	}
 	err = c.updateSecGroups(client, spaceCf.SecurityGroups, space.SecurityGroups, spaceCf.GUID)
 	if err != nil {

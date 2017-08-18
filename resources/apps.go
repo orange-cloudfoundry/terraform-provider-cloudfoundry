@@ -118,6 +118,13 @@ func (c CfAppsResource) createOrUpdate(d *schema.ResourceData, meta interface{})
 	if d.Id() == "" {
 		return c.createApp(d, meta, d.Get("started").(bool), true)
 	}
+	if c.IsRoutesUpdate(d) {
+		app, err := client.Finder().GetAppFromCf(d.Id())
+		if err != nil {
+			return err
+		}
+		return c.updateRoutes(d, meta, app)
+	}
 	if c.IsScaleUpdate(d) {
 		instances := d.Get("instances").(int)
 		_, err := client.Applications().Update(d.Id(), models.AppParams{InstanceCount: &instances})
@@ -186,6 +193,15 @@ func (c CfAppsResource) updateBgDeploy(d *schema.ResourceData, meta interface{})
 	}
 	return nil
 }
+func (c CfAppsResource) updateRoutes(d *schema.ResourceData, meta interface{}, a models.Application) error {
+	client := meta.(cf_client.Client)
+	currentRoutes := make([]string, 0)
+	if d.HasChange("routes") {
+		currentTfRoutes, _ := d.GetChange("routes")
+		currentRoutes = common.SchemaSetToStringList(currentTfRoutes.(*schema.Set))
+	}
+	return c.BindRoutes(client, a, common.SchemaSetToStringList(d.Get("routes").(*schema.Set)), currentRoutes)
+}
 func (c CfAppsResource) createApp(d *schema.ResourceData, meta interface{}, started bool, sendBits bool) error {
 	client := meta.(cf_client.Client)
 	appParams, err := c.resourceObject(d)
@@ -196,15 +212,21 @@ func (c CfAppsResource) createApp(d *schema.ResourceData, meta interface{}, star
 	if err != nil {
 		return err
 	}
-	err = c.BindRoutes(client, app, appParams.RouteIds)
-	if err != nil {
-		return err
-	}
-	err = c.BindServices(client, app, appParams.ServiceIds)
-	if err != nil {
-		return err
-	}
 	d.SetId(app.GUID)
+	err = c.updateRoutes(d, meta, app)
+	if err != nil {
+		return err
+	}
+	currentServices := make([]string, 0)
+	if d.HasChange("services") {
+		currentTfServices, _ := d.GetChange("services")
+		currentServices = common.SchemaSetToStringList(currentTfServices.(*schema.Set))
+	}
+	err = c.BindServices(client, app, appParams.ServiceIds, currentServices)
+	if err != nil {
+		return err
+	}
+
 	if sendBits {
 		err = c.SendBits(d, meta)
 		if err != nil {
@@ -327,6 +349,9 @@ func (c CfAppsResource) restartApp(client cf_client.Client, a models.Application
 	}
 	return nil
 }
+func (c CfAppsResource) IsRoutesUpdate(d *schema.ResourceData) bool {
+	return c.IsKeyUpdate(d, "routes")
+}
 func (c CfAppsResource) IsKeyUpdate(d *schema.ResourceData, key string) bool {
 	if !d.HasChange(key) {
 		return false
@@ -413,8 +438,8 @@ func (c CfAppsResource) createErrorFromLog(parentErr error, client cf_client.Cli
 	}
 	return fmt.Errorf("%s:%s", parentErr.Error(), logs)
 }
-func (c CfAppsResource) BindServices(client cf_client.Client, a models.Application, services []string) error {
-	if len(services) == 0 {
+func (c CfAppsResource) BindServices(client cf_client.Client, a models.Application, newServices, currentServices []string) error {
+	if len(newServices) == 0 {
 		return nil
 	}
 	currentBindings, err := client.Finder().GetServiceBindingsFromApp(a.GUID)
@@ -422,7 +447,7 @@ func (c CfAppsResource) BindServices(client cf_client.Client, a models.Applicati
 		return err
 	}
 	var toAdd = make([]string, 0)
-	toolbox.FilterSliceElements(services, func(item string) bool {
+	toolbox.FilterSliceElements(newServices, func(item string) bool {
 		for _, binding := range currentBindings {
 			if item == binding.GUID {
 				return false
@@ -438,8 +463,8 @@ func (c CfAppsResource) BindServices(client cf_client.Client, a models.Applicati
 	}
 	var toDelete = make([]models.ServiceBindingFields, 0)
 	toolbox.FilterSliceElements(currentBindings, func(item models.ServiceBindingFields) bool {
-		for _, service := range services {
-			if item.GUID == service {
+		for _, service := range newServices {
+			if item.GUID == service || !toolbox.HasSliceAnyElements(currentServices, item.GUID) {
 				return false
 			}
 		}
@@ -455,12 +480,12 @@ func (c CfAppsResource) BindServices(client cf_client.Client, a models.Applicati
 	}
 	return nil
 }
-func (c CfAppsResource) BindRoutes(client cf_client.Client, a models.Application, routes []string) error {
-	if len(routes) == 0 {
+func (c CfAppsResource) BindRoutes(client cf_client.Client, a models.Application, newRoutes, currentRoutes []string) error {
+	if len(newRoutes) == 0 {
 		return nil
 	}
 	var toAdd = make([]string, 0)
-	toolbox.FilterSliceElements(routes, func(item string) bool {
+	toolbox.FilterSliceElements(newRoutes, func(item string) bool {
 		for _, appRoute := range a.Routes {
 			if item == appRoute.GUID {
 				return false
@@ -476,8 +501,8 @@ func (c CfAppsResource) BindRoutes(client cf_client.Client, a models.Application
 	}
 	var toDelete = make([]models.RouteSummary, 0)
 	toolbox.FilterSliceElements(a.Routes, func(item models.RouteSummary) bool {
-		for _, route := range routes {
-			if item.GUID == route {
+		for _, route := range newRoutes {
+			if item.GUID == route || !toolbox.HasSliceAnyElements(currentRoutes, item.GUID) {
 				return false
 			}
 		}
@@ -572,13 +597,22 @@ func (c CfAppsResource) Read(d *schema.ResourceData, meta interface{}) error {
 		schemaEnvVar.Add(m)
 	}
 	d.Set("env_var", schemaEnvVar)
+	currentRoutes := common.SchemaSetToStringList(d.Get("routes").(*schema.Set))
 	schemaRoutes := schema.NewSet(d.Get("routes").(*schema.Set).F, make([]interface{}, 0))
 	for _, route := range app.Routes {
+		if !toolbox.HasSliceAnyElements(currentRoutes, route.GUID) {
+			continue
+		}
 		schemaRoutes.Add(route.GUID)
 	}
 	d.Set("routes", schemaRoutes)
+
+	currentServices := common.SchemaSetToStringList(d.Get("services").(*schema.Set))
 	schemaServices := schema.NewSet(d.Get("services").(*schema.Set).F, make([]interface{}, 0))
 	for _, binding := range currentBindings {
+		if !toolbox.HasSliceAnyElements(currentServices, binding.ServiceInstanceGUID) {
+			continue
+		}
 		schemaServices.Add(binding.ServiceInstanceGUID)
 	}
 	d.Set("services", schemaServices)
