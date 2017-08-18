@@ -640,6 +640,7 @@ resource "cloudfoundry_app" "myapp" {
   memory = "64M"
   disk_quota = "1G"
   command = ""
+  path = "/path/to/folder"
   diego = true
   buildpack = "php_buildpack"
   health_check_type = "port"
@@ -660,6 +661,7 @@ resource "cloudfoundry_app" "myapp" {
 - **name**: (**Required**) Name of your application.
 - **space_id**: (**Required**) Space id created from resource or data source [spaces](#spaces).
 - **stack_id**: (**Required**) Stack id retrieve from data source [Stacks](#stacks).
+- **path**: (**Required**) Path to a folder which contains application code or url to a zip/jar file
 - **started**: *(Optional, default: `true`)* State of your application (should be start or not).
 - **instances**: *(Optional, default: `1`)*  The number of instances of the app to run.
 - **memory**: *(Optional, default: `1G`)* The amount of memory each instance should have.
@@ -683,7 +685,8 @@ resource "cloudfoundry_app" "myapp" {
 - **env_var**: *(Optional, default: `NULL`)* Add any variable you want to the app environment:
   - **key**: (**Required**) Env var key.
   - **value**: (**Required**) Env var value.
-
+- **no_blue_green_restage**: *(Optional, default: `false`)* If set to `true` no blue green restage will be performed (it will restart the app).
+- **no_blue_green_deploy**: *(Optional, default: `false`)* If set to `true` no blue green deployment will be performed.
 
 #### Data source
 
