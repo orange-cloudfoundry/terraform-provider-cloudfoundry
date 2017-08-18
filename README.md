@@ -33,13 +33,13 @@ $ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.1"
 #### via curl
 
 ```bash
-$ sh -c "$(curl -fsSL https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/master/bin/install.sh)"
+$ bash -c "$(curl -fsSL https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/$(echo ${PROVIDER_CLOUDFOUNDRY_VERSION:-master})/bin/install.sh)"
 ```
 
 #### via wget
 
 ```bash
-$ sh -c "$(wget https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/master/bin/install.sh -O -)"
+$ bash -c "$(wget https://raw.github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/$(echo ${PROVIDER_CLOUDFOUNDRY_VERSION:-master})/bin/install.sh -O -)"
 ```
 
 ### Manually
