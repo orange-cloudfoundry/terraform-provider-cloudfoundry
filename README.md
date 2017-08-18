@@ -27,7 +27,7 @@ This terraformp provider supports the use-case of managing a Cloud Foundry insta
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.0"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.1"
 ```
 
 #### via curl
