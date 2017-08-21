@@ -1,12 +1,10 @@
 package resources
 
 import (
-	"bytes"
 	"code.cloudfoundry.org/cli/cf/errors"
 	"code.cloudfoundry.org/cli/cf/formatters"
 	"code.cloudfoundry.org/cli/cf/models"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/bitsmanager"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
@@ -61,12 +59,7 @@ func (c CfAppsResource) resourceObject(d *schema.ResourceData) (AppParams, error
 	}
 	routeIds := common.SchemaSetToStringList(d.Get("routes").(*schema.Set))
 	serviceIds := common.SchemaSetToStringList(d.Get("services").(*schema.Set))
-	envVarSchema := d.Get("env_var").(*schema.Set)
-	envVars := make(map[string]interface{})
-	for _, elm := range envVarSchema.List() {
-		envVar := elm.(map[string]interface{})
-		envVars[envVar["key"].(string)] = envVar["value"].(string)
-	}
+	envVars := d.Get("env_var").(map[string]interface{})
 	return AppParams{
 		AppParams: models.AppParams{
 			BuildpackURL:            &buildpack,
@@ -588,15 +581,7 @@ func (c CfAppsResource) Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("docker_image", app.DockerImage)
 	d.Set("diego", app.Diego)
 	d.Set("enable_ssh", app.EnableSSH)
-	schemaEnvVar := schema.NewSet(d.Get("env_var").(*schema.Set).F, make([]interface{}, 0))
-	for key, value := range app.EnvironmentVars {
-		m := map[string]interface{}{
-			"key":   key,
-			"value": value,
-		}
-		schemaEnvVar.Add(m)
-	}
-	d.Set("env_var", schemaEnvVar)
+	d.Set("env_var", app.EnvironmentVars)
 	currentRoutes := common.SchemaSetToStringList(d.Get("routes").(*schema.Set))
 	schemaRoutes := schema.NewSet(d.Get("routes").(*schema.Set).F, make([]interface{}, 0))
 	for _, route := range app.Routes {
@@ -763,27 +748,9 @@ func (c CfAppsResource) Schema() map[string]*schema.Schema {
 			Set:      schema.HashString,
 		},
 		"env_var": &schema.Schema{
-			Type:     schema.TypeSet,
+			Type:     schema.TypeMap,
 			Optional: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"key": &schema.Schema{
-						Type:     schema.TypeString,
-						Required: true,
-					},
-					"value": &schema.Schema{
-						Type:     schema.TypeString,
-						Required: true,
-					},
-				},
-			},
-			Set: func(v interface{}) int {
-				var buf bytes.Buffer
-				m := v.(map[string]interface{})
-				buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
-				buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
-				return hashcode.String(buf.String())
-			},
+			Elem:     schema.TypeString,
 		},
 		"no_blue_green_restage": &schema.Schema{
 			Type:     schema.TypeBool,

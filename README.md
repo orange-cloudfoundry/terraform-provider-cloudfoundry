@@ -651,10 +651,11 @@ resource "cloudfoundry_app" "myapp" {
   ports = [8080]
   routes = ["${cloudfoundry_route.route_superroute.id}"]
   services = ["${cloudfoundry_service.svc_db.id}"]
-  env_var {
-    key = "MY_ENV_KEY"
-    value = "myvalue"
-  } # you can have, of course, multiple env_var
+  env_var = {
+    "MY_ENV_KEY" = "myvalue"
+    "MY_ENV_KEY2" = "myvalue2"
+    #...
+  }
 }
 ```
 
@@ -682,9 +683,7 @@ resource "cloudfoundry_app" "myapp" {
   Ports must be in range 1024-65535. Supported for Diego only. (**Note**: This is a copy of the default behaviour of cloud foundry cli, it always create a default port to 8080 when using diego backend)
 - **routes**: *(Optional, default: `NULL`)* List of route guid retrieve from resource or data source [routes](#routes) to attach routes to your app.  
 - **services**: *(Optional, default: `NULL`)* List of service guid retrieve from resource or data source [services](#services) to bind services to your app.
-- **env_var**: *(Optional, default: `NULL`)* Add any variable you want to the app environment:
-  - **key**: (**Required**) Env var key.
-  - **value**: (**Required**) Env var value.
+- **env_var**: *(Optional, default: `NULL`)* Add any variable you want to the app environment.
 - **no_blue_green_restage**: *(Optional, default: `false`)* If set to `true` no blue green restage will be performed (it will restart the app).
 - **no_blue_green_deploy**: *(Optional, default: `false`)* If set to `true` no blue green deployment will be performed.
 
