@@ -446,7 +446,7 @@ resource "cloudfoundry_route" "route_superroute" {
 }
 ```
 
-- **name**: (**Required**) Your hostname.
+- **hostname**: (**Required**) Your hostname.
 - **domain_id**: (**Required**) Domain id created from resource or data source [domains](#domains).
 - **space_id**: (**Required**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register route inside.
 - **port**: *(Optional, default: `-1`)* Set a port for your route (only works with a tcp domain). **Note**: If `0` a random port will be chose
@@ -665,7 +665,7 @@ resource "cloudfoundry_app" "myapp" {
 - **path**: (**Required**) Path to a folder which contains application code or url to a zip/jar file
 - **started**: *(Optional, default: `true`)* State of your application (should be start or not).
 - **instances**: *(Optional, default: `1`)*  The number of instances of the app to run.
-- **memory**: *(Optional, default: `1G`)* The amount of memory each instance should have.
+- **memory**: *(Optional, default: `512M`)* The amount of memory each instance should have.
 - **disk_quota**: *(Optional, default: `1G`)* The maximum amount of disk available to an instance of an app.
 - **command**: *(Optional, default: `NULL`)* The command to start an app after it is staged.
 - **diego**: *(Optional, default: `true`)* Use diego to stage and to run when available (Diego should be always available because DEA is not supported anymore).
@@ -675,6 +675,7 @@ resource "cloudfoundry_app" "myapp" {
   - port
   - process
   - none
+- **started**: *(Optional, default: `true`)* when set to false app will not be started.
 - **health_check_http_endpoint**: *(Optional, default: `NULL`)* Endpoint called to determine if the app is healthy. (Can  be use only when check type is http)
 - **health_check_timeout**: *(Optional, default: `NULL`)* Timeout in seconds for health checking of an staged app when starting up.
 - **docker_image**: *(Optional, default: `NULL`)* Name of the Docker image containing the app. The "diego_docker" feature flag must be enabled in order to create Docker image apps.
