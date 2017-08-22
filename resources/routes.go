@@ -77,6 +77,7 @@ func (c CfRouteResource) Create(d *schema.ResourceData, meta interface{}) error 
 	}
 	d.Set("uri", c.generateUri(routeCf, d.Get("protocol").(string)))
 	d.SetId(routeCf.GUID)
+	route.GUID = routeCf.GUID
 	return c.updateBinding(client, routeCf, route)
 }
 func (c CfRouteResource) Read(d *schema.ResourceData, meta interface{}) error {
@@ -191,6 +192,16 @@ func (c CfRouteResource) Update(d *schema.ResourceData, meta interface{}) error 
 }
 func (c CfRouteResource) Delete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
+	if d.Get("service_id").(string) != "" {
+		svc, err := client.Finder().GetServiceFromCf(d.Get("service_id").(string))
+		if err != nil {
+			return err
+		}
+		err = client.RouteServiceBinding().Unbind(svc.GUID, d.Id(), svc.IsUserProvided())
+		if err != nil {
+			return err
+		}
+	}
 	return client.Route().Delete(d.Id())
 }
 func (c CfRouteResource) Schema() map[string]*schema.Schema {

@@ -35,6 +35,9 @@ type ServiceAccess struct {
 func (c CfServiceBrokerResource) serviceAccessObjects(d *schema.ResourceData) []ServiceAccess {
 	serviceAccessShema := d.Get("service_access").(*schema.Set)
 	serviceAccesses := make([]ServiceAccess, 0)
+	if c.isSpaceScoped(d) {
+		return serviceAccesses
+	}
 	for _, serviceAccess := range serviceAccessShema.List() {
 		serviceAccesses = append(
 			serviceAccesses,
@@ -273,6 +276,10 @@ func (c CfServiceBrokerResource) isPlanInAllOrgs(client cf_client.Client, planGu
 	return true, nil
 }
 func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}) error {
+	err := c.checkAccess(d)
+	if err != nil {
+		return err
+	}
 	client := meta.(cf_client.Client)
 	serviceBroker, err := c.resourceObject(d, meta)
 	if err != nil {
@@ -290,7 +297,7 @@ func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}
 			serviceBroker.URL,
 			serviceBroker.Username,
 			serviceBroker.Password,
-			"",
+			d.Get("space_id").(string),
 		)
 		if err != nil {
 			return err
@@ -299,9 +306,21 @@ func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}
 	}
 	d.Set("catalog_sha1", c.generateCatalogSha1(serviceBroker, client.Config()))
 	d.Set("previous_password", serviceBroker.Password)
+	if c.isSpaceScoped(d) {
+		return nil
+	}
 	serviceBrokerCf, err := c.getServiceBrokerFromCf(client, d.Id())
 	servicesAccess := c.serviceAccessObjects(d)
 	return c.updateServicesAccess(client, serviceBrokerCf, servicesAccess)
+}
+func (c CfServiceBrokerResource) checkAccess(d *schema.ResourceData) error {
+	if c.isSpaceScoped(d) || d.Get("service_access").(*schema.Set).Len() > 0 {
+		return nil
+	}
+	return fmt.Errorf(`"service_access" or "space_id" must be set`)
+}
+func (c CfServiceBrokerResource) isSpaceScoped(d *schema.ResourceData) bool {
+	return d.Get("space_id").(string) != ""
 }
 func (c CfServiceBrokerResource) updateServicesAccess(client cf_client.Client, serviceBroker models.ServiceBroker, servicesAccess []ServiceAccess) error {
 	for _, serviceAccess := range servicesAccess {
@@ -552,6 +571,9 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 		d.Set("catalog_sha1", remoteSha1)
 		d.Set("catalog_has_changed", "modified")
 	}
+	if c.isSpaceScoped(d) {
+		return nil
+	}
 	servicesAccess, err := c.retrieveServicesAccessFromBroker(client, brokerCf)
 
 	serviceAccessSchema := schema.NewSet(d.Get("service_access").(*schema.Set).F, make([]interface{}, 0))
@@ -562,6 +584,10 @@ func (c CfServiceBrokerResource) Read(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}) error {
+	err := c.checkAccess(d)
+	if err != nil {
+		return err
+	}
 	client := meta.(cf_client.Client)
 	d.Set("catalog_has_changed", "")
 	brokerName := d.Get("name").(string)
@@ -596,6 +622,9 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 		if err != nil {
 			return err
 		}
+	}
+	if c.isSpaceScoped(d) {
+		return nil
 	}
 	servicesAccess := c.serviceAccessObjects(d)
 	err = c.updateServicesAccessToPublicServicePlan(client, brokerCf, servicesAccess)
@@ -664,6 +693,11 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 			Required: true,
 			ForceNew: true,
 		},
+		"space_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+		},
 		"url": &schema.Schema{
 			Type:     schema.TypeString,
 			Required: true,
@@ -703,7 +737,7 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 		},
 		"service_access": &schema.Schema{
 			Type:     schema.TypeSet,
-			Required: true,
+			Optional: true,
 
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{

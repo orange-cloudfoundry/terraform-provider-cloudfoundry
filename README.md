@@ -27,7 +27,7 @@ This terraformp provider supports the use-case of managing a Cloud Foundry insta
 To install a specific version, set PROVIDER_CLOUDFOUNDRY_VERSION before executing the following command
 
 ```bash
-$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.1"
+$ export PROVIDER_CLOUDFOUNDRY_VERSION="v0.8.3"
 ```
 
 #### via curl
@@ -597,7 +597,8 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 - **username**: *(Optional, default: `null`)* Username to authenticate to your service broker.
 - **password**: *(Optional, default: `null`)* Password to authenticate to your service broker. **Note**: you can pass a base 64 encrypted gpg message if you [enabled password encryption](#enable-password-encryption).
 - **catalog_sha1**: *(Computed)* Do not modify yourself, this permits to detect a change in the service broker catalog.
-- **service_access**: (**Required**) Add service access as many as you need, service access make you service broker accessible on marketplace:
+- **space_id**: *(Optional, default: `null`)* If set, your service broker will be created as a space-scoped service broker on this space.
+- **service_access**: (**Required if space_id not set**) Add service access as many as you need, service access make you service broker accessible on marketplace:
   - **service**: (**Required**) Service name from your service broker catalog to activate. **Note**: if there is only service in your service access it will enable all plan on all orgs on your Cloud Foundry.
   - **plan**: *(Optional, default: `null`)* Plan from your service broker catalog attached to this service to activate. **Note**: if no `org_id` is given it will enable this plan on all orgs.
   - **org_id**: *(Optional, default: `null`)* Org id created from resource or data source [cloudfoundry_organization](#organizations) to activate this service. **Note**: if no `plan` is given it will all plans on this org.
