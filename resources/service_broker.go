@@ -305,7 +305,7 @@ func (c CfServiceBrokerResource) Create(d *schema.ResourceData, meta interface{}
 		c.Exists(d, meta)
 	}
 	d.Set("catalog_sha1", c.generateCatalogSha1(serviceBroker, client.Config()))
-	d.Set("previous_password", serviceBroker.Password)
+	d.Set("previous_password", d.Get("password"))
 	if c.isSpaceScoped(d) {
 		return nil
 	}
@@ -610,7 +610,7 @@ func (c CfServiceBrokerResource) Update(d *schema.ResourceData, meta interface{}
 	}
 	previousPassword := d.Get("previous_password").(string)
 	brokerCf.Password = broker.Password
-	d.Set("previous_password", broker.Password)
+	d.Set("previous_password", d.Get("password"))
 	currentCatalogSha1 := d.Get("catalog_sha1")
 	d.Set("catalog_sha1", c.generateCatalogSha1(brokerCf, client.Config()))
 	if broker.Name != brokerCf.Name ||
