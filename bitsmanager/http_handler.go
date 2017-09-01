@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/common"
 	"net/http"
-	"time"
 )
 
 type HttpHandler struct {
@@ -36,7 +35,7 @@ func (h HttpHandler) makeHttpClient() *http.Client {
 	}
 	return &http.Client{
 		Transport: tr,
-		Timeout:   2 * time.Second,
+		Timeout:   0,
 	}
 }
 func (h HttpHandler) GetSha1File(path string) (string, error) {
