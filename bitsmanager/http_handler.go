@@ -134,10 +134,10 @@ func (h HttpHandler) writeTarToZip(r io.Reader, zipFile *os.File) error {
 			return err
 		}
 		if !hasRootFolder {
-			zipHeader.Name = "/" + header.Name
+			zipHeader.Name = header.Name
 		} else {
 			splitFile := strings.Split(header.Name, "/")
-			zipHeader.Name = "/" + strings.Join(splitFile[1:], "/")
+			zipHeader.Name = strings.Join(splitFile[1:], "/")
 		}
 		if !fileInfo.IsDir() {
 			zipHeader.Method = zip.Deflate
