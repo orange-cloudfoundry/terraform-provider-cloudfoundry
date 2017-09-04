@@ -690,7 +690,7 @@ resource "cloudfoundry_app" "myapp" {
 - **no_blue_green_deploy**: *(Optional, default: `false`)* If set to `true` no blue green deployment will be performed.
 
 **Note**:
-- Cloud controller doesn't support multipart upload this actually mean that an intermediate file need to be created containing the request and data (this is actually the current behaviour from cli)
+- Cloud controller doesn't support multipart upload in chunk (could not stream chunk of files) this actually mean that an intermediate file need to be created containing the request and data (this is actually the current behaviour from cli)
 - When retrieving source from a zip file url the stream will be passed directly
 - When retrieving source from a tgz/tar file url this will be converted as zip directly from the stream
 - When retrieving source from a git repo a folder will be created containing source before push them
