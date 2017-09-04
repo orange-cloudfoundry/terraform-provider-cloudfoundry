@@ -103,6 +103,7 @@ func (c CfAppsResource) Create(d *schema.ResourceData, meta interface{}) error {
 			client.Config().ApiEndpoint,
 			d.Get("name").(string),
 		)
+		d.Set("bits_has_changed", "modified")
 	}
 	return c.createOrUpdate(d, meta)
 }
@@ -529,7 +530,7 @@ func (c CfAppsResource) SendBits(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 func (c CfAppsResource) IsBitsDiff(d *schema.ResourceData) bool {
-	return d.HasChange("bits_has_changed")
+	return d.HasChange("bits_has_changed") || d.Get("bits_has_changed").(string) != ""
 }
 func (c CfAppsResource) updateBitsDiff(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(cf_client.Client)
