@@ -663,7 +663,7 @@ resource "cloudfoundry_app" "myapp" {
 - **name**: (**Required**) Name of your application.
 - **space_id**: (**Required**) Space id created from resource or data source [spaces](#spaces).
 - **stack_id**: (**Required**) Stack id retrieve from data source [Stacks](#stacks).
-- **path**: (**Required**) Path to a folder which contains application code or url to a zip/jar file
+- **path**: (**Required**) Path to a folder which contains application code, url to a zip/jar, url to a tgz/tar or a git url following the scheme: https://[user:password@]mygit.com/myrepo.git[#tag-or-branch-or-commit-hash]
 - **started**: *(Optional, default: `true`)* State of your application (should be start or not).
 - **instances**: *(Optional, default: `1`)*  The number of instances of the app to run.
 - **memory**: *(Optional, default: `512M`)* The amount of memory each instance should have.
@@ -688,6 +688,13 @@ resource "cloudfoundry_app" "myapp" {
 - **env_var**: *(Optional, default: `NULL`)* Add any variable you want to the app environment.
 - **no_blue_green_restage**: *(Optional, default: `false`)* If set to `true` no blue green restage will be performed (it will restart the app).
 - **no_blue_green_deploy**: *(Optional, default: `false`)* If set to `true` no blue green deployment will be performed.
+
+**Note**:
+- Cloud controller doesn't support multipart upload this actually mean that an intermediate file need to be created containing the request and data (this is actually the current behaviour from cli)
+- When retrieving source from a zip file url the stream will be passed directly
+- When retrieving source from a tgz/tar file url this will be converted as zip directly from the stream
+- When retrieving source from a git repo a folder will be created containing source before push them
+- A git repo fetch data only for the branch or tag with a depth of 1, if a commit hash is set everything from repo will be fetched before force to commit (this mean that passing a commit hash will make things slower)
 
 #### Data source
 

@@ -86,13 +86,13 @@ func (c CfAppsResource) resourceObject(d *schema.ResourceData) (AppParams, error
 }
 func (c CfAppsResource) MakeBitsManager(meta interface{}) bitsmanager.BitsManager {
 	client := meta.(cf_client.Client)
-	localHandler := bitsmanager.LocalHandler{}
-	httpHandler := bitsmanager.HttpHandler{
-		SkipInsecureSSL: client.Config().SkipInsecureSSL,
-	}
 	return bitsmanager.NewCloudControllerBitsManager(
 		client.ApplicationBits(),
-		[]bitsmanager.Handler{localHandler, httpHandler},
+		[]bitsmanager.Handler{
+			bitsmanager.NewLocalHandler(),
+			bitsmanager.NewHttpHandler(client.Config().SkipInsecureSSL),
+			bitsmanager.NewGitHandler(client.Config().SkipInsecureSSL),
+		},
 	)
 }
 func (c CfAppsResource) Create(d *schema.ResourceData, meta interface{}) error {

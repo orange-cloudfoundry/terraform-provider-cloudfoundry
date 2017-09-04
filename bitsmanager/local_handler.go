@@ -9,8 +9,11 @@ import (
 type LocalHandler struct {
 }
 
+func NewLocalHandler() *LocalHandler {
+	return &LocalHandler{}
+}
 func (h LocalHandler) GetZipFile(path string) (FileHandler, error) {
-	zipFile, err := ioutil.TempFile("", "uploads")
+	zipFile, err := ioutil.TempFile("", "uploads-tf")
 	if err != nil {
 		return FileHandler{}, err
 	}
@@ -20,6 +23,9 @@ func (h LocalHandler) GetZipFile(path string) (FileHandler, error) {
 		return FileHandler{}, err
 	}
 	file, err := os.Open(zipFile.Name())
+	if err != nil {
+		return FileHandler{}, err
+	}
 	cleanFunc := func() error {
 		return os.Remove(zipFile.Name())
 	}
@@ -28,7 +34,7 @@ func (h LocalHandler) GetZipFile(path string) (FileHandler, error) {
 		ZipFile: file,
 		Size:    fs.Size(),
 		Clean:   cleanFunc,
-	}, err
+	}, nil
 }
 func (h LocalHandler) Detect(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
