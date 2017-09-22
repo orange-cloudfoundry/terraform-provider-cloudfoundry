@@ -146,7 +146,10 @@ func (repo CloudControllerApplicationBitsRepository) getJob(jobGuid string) (Job
 	}
 	return job, nil
 }
-func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, zipFile io.ReadCloser, fileSize int64) (apiErr error) {
+
+/////
+//Old way to send bits, now do it as a stream
+func (repo CloudControllerApplicationBitsRepository) UploadBitsTmp(appGUID string, zipFile io.ReadCloser, fileSize int64) (apiErr error) {
 	apiURL := fmt.Sprintf("/v2/apps/%s/bits", appGUID)
 	fileutils.TempFile("requests", func(requestFile *os.File, err error) {
 		if err != nil {
@@ -155,12 +158,7 @@ func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, 
 		}
 
 		presentFiles := []resources.AppFileResource{}
-
-		presentFilesJSON, err := json.Marshal(presentFiles)
-		if err != nil {
-			apiErr = fmt.Errorf("%s: %s", T("Error marshaling JSON"), err.Error())
-			return
-		}
+		presentFilesJSON, _ := json.Marshal(presentFiles)
 
 		boundary, err := repo.writeUploadBody(zipFile, fileSize, requestFile, presentFilesJSON)
 		if err != nil {
@@ -201,19 +199,18 @@ func (repo CloudControllerApplicationBitsRepository) writeUploadBody(zipFile io.
 		return
 	}
 
-	if zipFile != nil {
-
-		part, zipErr := createZipPartWriter(fileSize, writer)
-		if zipErr != nil {
-			return
-		}
-
-		_, zipErr = io.Copy(part, zipFile)
-		if zipErr != nil {
-			return
-		}
+	if zipFile == nil {
+		return
+	}
+	part, zipErr := createZipPartWriter(fileSize, writer)
+	if zipErr != nil {
+		return
 	}
 
+	_, zipErr = io.Copy(part, zipFile)
+	if zipErr != nil {
+		return
+	}
 	return
 }
 
@@ -226,18 +223,14 @@ func createZipPartWriter(fileSize int64, writer *multipart.Writer) (io.Writer, e
 	return writer.CreatePart(h)
 }
 
-//////////////////
-// Not used for now, this is an intent to make an upload in full stream (no intermediate file)
-func (repo CloudControllerApplicationBitsRepository) UploadBitsTmp(appGUID string, zipFile io.ReadCloser, fileSize int64) error {
+//Old way to send bits
+/////
+func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, zipFile io.ReadCloser, fileSize int64) error {
 	apiURL := fmt.Sprintf("/v2/apps/%s/bits", appGUID)
-	buf := new(bytes.Buffer)
-	io.Copy(buf, zipFile)
-	panic(buf)
 	r, w := io.Pipe()
 	mpw := multipart.NewWriter(w)
 	go func() {
 		var err error
-		defer mpw.Close()
 		defer w.Close()
 		part, err := mpw.CreateFormField("resources")
 		if err != nil {
@@ -260,6 +253,7 @@ func (repo CloudControllerApplicationBitsRepository) UploadBitsTmp(appGUID strin
 		if _, err = io.Copy(part, zipFile); err != nil {
 			panic(err)
 		}
+		mpw.Close()
 	}()
 	var request *net.Request
 	request, err := repo.gateway.NewRequest("PUT", repo.config.APIEndpoint()+apiURL, repo.config.AccessToken(), nil)
@@ -268,7 +262,7 @@ func (repo CloudControllerApplicationBitsRepository) UploadBitsTmp(appGUID strin
 	}
 	contentType := fmt.Sprintf("multipart/form-data; boundary=%s", mpw.Boundary())
 	request.HTTPReq.Header.Set("Content-Type", contentType)
-	request.HTTPReq.ContentLength = int64(repo.predictPart(int64(fileSize)))
+	request.HTTPReq.ContentLength = int64(repo.predictPart(int64(fileSize), mpw.Boundary()))
 	request.HTTPReq.Body = r
 
 	response := &resources.Resource{}
@@ -279,11 +273,11 @@ func (repo CloudControllerApplicationBitsRepository) UploadBitsTmp(appGUID strin
 	return nil
 }
 
-func (repo CloudControllerApplicationBitsRepository) predictPart(filesize int64) int64 {
+func (repo CloudControllerApplicationBitsRepository) predictPart(filesize int64, boundary string) int64 {
 	buf := new(bytes.Buffer)
 	mpw := multipart.NewWriter(buf)
 
-	defer mpw.Close()
+	mpw.SetBoundary(boundary)
 	part, err := mpw.CreateFormField("resources")
 	if err != nil {
 		panic(err)
@@ -299,9 +293,10 @@ func (repo CloudControllerApplicationBitsRepository) predictPart(filesize int64)
 	h.Set("Content-Transfer-Encoding", "binary")
 
 	part, err = mpw.CreatePart(h)
+	if err != nil {
+		panic(err)
+	}
+	mpw.Close()
 	b, _ := ioutil.ReadAll(buf)
 	return int64(len(b)) + filesize
 }
-
-// end of the try
-//////////////////
