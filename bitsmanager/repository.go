@@ -225,6 +225,7 @@ func createZipPartWriter(fileSize int64, writer *multipart.Writer) (io.Writer, e
 
 //Old way to send bits
 /////
+
 func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, zipFile io.ReadCloser, fileSize int64) error {
 	apiURL := fmt.Sprintf("/v2/apps/%s/bits", appGUID)
 	r, w := io.Pipe()
@@ -234,10 +235,12 @@ func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, 
 		defer w.Close()
 		part, err := mpw.CreateFormField("resources")
 		if err != nil {
+			mpw.Close()
 			panic(err)
 		}
 		_, err = io.Copy(part, bytes.NewBuffer([]byte("[]")))
 		if err != nil {
+			mpw.Close()
 			panic(err)
 		}
 		h := make(textproto.MIMEHeader)
@@ -248,9 +251,11 @@ func (repo CloudControllerApplicationBitsRepository) UploadBits(appGUID string, 
 
 		part, err = mpw.CreatePart(h)
 		if err != nil {
+			mpw.Close()
 			panic(err)
 		}
 		if _, err = io.Copy(part, zipFile); err != nil {
+			mpw.Close()
 			panic(err)
 		}
 		mpw.Close()
@@ -280,10 +285,12 @@ func (repo CloudControllerApplicationBitsRepository) predictPart(filesize int64,
 	mpw.SetBoundary(boundary)
 	part, err := mpw.CreateFormField("resources")
 	if err != nil {
+		mpw.Close()
 		panic(err)
 	}
 	_, err = io.Copy(part, bytes.NewBuffer([]byte("[]")))
 	if err != nil {
+		mpw.Close()
 		panic(err)
 	}
 	h := make(textproto.MIMEHeader)
@@ -294,6 +301,7 @@ func (repo CloudControllerApplicationBitsRepository) predictPart(filesize int64,
 
 	part, err = mpw.CreatePart(h)
 	if err != nil {
+		mpw.Close()
 		panic(err)
 	}
 	mpw.Close()
