@@ -14,7 +14,7 @@ script:
 - go test `go list ./... | grep -v vendor` -v
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
-- git checkout v0.10.1
+- git checkout v0.10.7
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
 - bin/build-all.sh 0.10
 deploy:
