@@ -256,3 +256,51 @@ func (c CfSpaceResource) DataSourceRead(d *schema.ResourceData, meta interface{}
 	fn := CreateDataSourceReadFunc(c)
 	return fn(d, meta)
 }
+
+type CfSpacesDataSource struct{}
+
+func (c CfSpacesDataSource) DataSourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"names": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"ids": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"org_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+	}
+}
+func (c CfSpacesDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(cf_client.Client)
+	orgId := d.Get("org_id").(string)
+	var err error
+	names := make([]string, 0)
+	ids := make([]string, 0)
+	if orgId == "" {
+		err = client.Spaces().ListSpaces(func(space models.Space) bool {
+			names = append(names, space.Name)
+			ids = append(ids, space.GUID)
+			return true
+		})
+	} else {
+		err = client.Spaces().ListSpacesFromOrg(orgId, func(space models.Space) bool {
+			names = append(names, space.Name)
+			ids = append(ids, space.GUID)
+			return true
+		})
+	}
+
+	if err != nil {
+		return err
+	}
+	d.Set("names", names)
+	d.Set("ids", ids)
+	return nil
+}

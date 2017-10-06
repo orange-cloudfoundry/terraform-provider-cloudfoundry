@@ -91,6 +91,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_organization":      resources.LoadCfDataSource(resources.CfOrganizationResource{}),
 			"cloudfoundry_organizations":     resources.LoadCfDataSource(resources.CfOrganizationsDataSource{}),
 			"cloudfoundry_space":             resources.LoadCfDataSource(resources.CfSpaceResource{}),
+			"cloudfoundry_spaces":            resources.LoadCfDataSource(resources.CfSpacesDataSource{}),
 			"cloudfoundry_quota":             resources.LoadCfDataSource(resources.CfQuotaResource{}),
 			"cloudfoundry_sec_group":         resources.LoadCfDataSource(resources.CfSecurityGroupResource{}),
 			"cloudfoundry_buildpack":         resources.LoadCfDataSource(resources.CfBuildpackResource{}),

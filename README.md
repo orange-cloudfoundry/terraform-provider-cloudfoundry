@@ -158,6 +158,8 @@ resource "cloudfoundry_space" "space_mysuperspace" {
 
 #### Data source
 
+##### Get one space with all details
+
 **Note**: every parameters from resource which are not used here are marked as computed and will be filled.
 
 ```tf
@@ -169,6 +171,24 @@ data "cloudfoundry_space" "space_mysuperspace" {
 
 - **name**: (**Required**) Name of your space.
 - **org_id**: (**Required**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
+
+##### Get all spaces
+
+```hcl
+data "cloudfoundry_spaces" "available" {
+  org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+
+data "cloudfoundry_space" "space_mysuperspace" {
+    name = "${data.cloudfoundry_spaces.available.names[0]}"
+    org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+```
+
+- **org_id**: (*Optional, Default: Empty*) Organization id created from resource or data source [cloudfoundry_organization](#organizations). 
+If not set all spaces will be retrieve.
+- **names**: (*Computed*) List of the spaces name found.
+- **ids**: (*Computed*) List of the spaces id found. (same order as `names`)
 
 ----
 
