@@ -28,9 +28,7 @@ var FLAGS map[string]bool = map[string]bool{
 	"space_developer_env_var_visibility":   true,
 }
 
-type CfFeatureFlagsResource struct {
-	CfResource
-}
+type CfFeatureFlagsResource struct{}
 
 func (c CfFeatureFlagsResource) resourceObject(d *schema.ResourceData) map[string]bool {
 	flags := make(map[string]bool)

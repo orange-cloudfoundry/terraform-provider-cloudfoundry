@@ -11,9 +11,7 @@ import (
 	"strconv"
 )
 
-type CfEnvVarGroupResource struct {
-	CfResource
-}
+type CfEnvVarGroupResource struct{}
 type EnvVarGroupMap struct {
 	Running map[string]string
 	Staging map[string]string

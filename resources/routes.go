@@ -9,9 +9,7 @@ import (
 	"log"
 )
 
-type CfRouteResource struct {
-	CfResource
-}
+type CfRouteResource struct{}
 
 func (c CfRouteResource) resourceObject(d *schema.ResourceData) models.Route {
 	return models.Route{

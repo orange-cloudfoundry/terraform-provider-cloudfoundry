@@ -10,9 +10,7 @@ import (
 
 const DEFAULT_ORG_QUOTA_NAME = "default"
 
-type CfOrganizationResource struct {
-	CfResource
-}
+type CfOrganizationResource struct{}
 
 func (c CfOrganizationResource) resourceObject(d *schema.ResourceData) models.Organization {
 	quotaDef := models.QuotaFields{

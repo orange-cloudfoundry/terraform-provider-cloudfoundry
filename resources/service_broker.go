@@ -23,9 +23,7 @@ const (
 	CATALOG_ROUTE = "/v2/catalog"
 )
 
-type CfServiceBrokerResource struct {
-	CfResource
-}
+type CfServiceBrokerResource struct{}
 type ServiceAccess struct {
 	Service string
 	Plan    string

@@ -17,9 +17,7 @@ import (
 
 var validProtocoles []string = []string{"icmp", "tcp", "udp", "all"}
 
-type CfSecurityGroupResource struct {
-	CfResource
-}
+type CfSecurityGroupResource struct{}
 
 func (c CfSecurityGroupResource) resourceObject(d *schema.ResourceData) models.SecurityGroupFields {
 	rulesSchema := d.Get("rules").(*schema.Set)

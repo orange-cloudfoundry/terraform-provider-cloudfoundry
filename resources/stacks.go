@@ -7,9 +7,7 @@ import (
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
 )
 
-type CfStackResource struct {
-	CfResource
-}
+type CfStackResource struct{}
 
 func (c CfStackResource) DataSourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{

@@ -10,9 +10,7 @@ import (
 	"log"
 )
 
-type CfServiceResource struct {
-	CfResource
-}
+type CfServiceResource struct{}
 
 func (c CfServiceResource) resourceObject(d *schema.ResourceData) models.ServiceInstance {
 	tagsSchema := d.Get("tags").(*schema.Set)

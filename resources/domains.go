@@ -11,9 +11,7 @@ import (
 	"log"
 )
 
-type CfDomainResource struct {
-	CfResource
-}
+type CfDomainResource struct{}
 
 func (c CfDomainResource) resourceObject(d *schema.ResourceData) models.DomainFields {
 	return models.DomainFields{

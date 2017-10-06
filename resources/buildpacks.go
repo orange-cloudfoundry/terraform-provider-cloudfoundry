@@ -12,9 +12,7 @@ import (
 	"path/filepath"
 )
 
-type CfBuildpackResource struct {
-	CfResource
-}
+type CfBuildpackResource struct{}
 
 func (c CfBuildpackResource) resourceObject(d *schema.ResourceData) (models.Buildpack, error) {
 	var err error

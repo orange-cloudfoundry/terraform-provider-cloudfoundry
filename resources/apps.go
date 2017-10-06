@@ -21,9 +21,7 @@ const (
 	stateStarted = "STARTED"
 )
 
-type CfAppsResource struct {
-	CfResource
-}
+type CfAppsResource struct{}
 type AppParams struct {
 	models.AppParams
 	RouteIds   []string

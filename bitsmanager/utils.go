@@ -13,6 +13,7 @@ import (
 var ZIP_FILE_EXT []string = []string{
 	".zip",
 	".jar",
+	".war",
 }
 var TAR_FILE_EXT []string = []string{
 	".tar",

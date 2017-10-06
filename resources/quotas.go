@@ -10,9 +10,7 @@ import (
 	"log"
 )
 
-type CfQuotaResource struct {
-	CfResource
-}
+type CfQuotaResource struct{}
 
 func (c CfQuotaResource) resourceObject(d *schema.ResourceData) (interface{}, error) {
 	totalMemory, err := c.transformToMegabytes(d.Get("total_memory").(string))

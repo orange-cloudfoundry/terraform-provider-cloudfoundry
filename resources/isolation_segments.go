@@ -10,9 +10,7 @@ import (
 	"net/url"
 )
 
-type CfIsolationSegmentsResource struct {
-	CfResource
-}
+type CfIsolationSegmentsResource struct{}
 type IsolationSegment struct {
 	ccv3.IsolationSegment
 	OrgsGUID []string

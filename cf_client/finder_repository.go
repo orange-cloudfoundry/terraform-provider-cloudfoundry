@@ -190,5 +190,9 @@ func (f Finder) GetAppFromCf(appGuid string) (models.Application, error) {
 	if err != nil {
 		return models.Application{}, err
 	}
-	return res.ToModel(), nil
+	model := res.ToModel()
+	if res.Entity.HealthCheckTimeout != nil {
+		model.HealthCheckTimeout = *res.Entity.HealthCheckTimeout
+	}
+	return model, nil
 }
