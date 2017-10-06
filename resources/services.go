@@ -241,12 +241,14 @@ func (c CfServiceResource) Schema() map[string]*schema.Schema {
 			Computed: true,
 		},
 		"params": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:      schema.TypeString,
+			Optional:  true,
+			Sensitive: true,
 		},
 		"update_params": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
+			Type:      schema.TypeString,
+			Optional:  true,
+			Sensitive: true,
 		},
 		"user_provided": &schema.Schema{
 			Type:     schema.TypeBool,

@@ -747,9 +747,10 @@ func (c CfAppsResource) Schema() map[string]*schema.Schema {
 			Set:      schema.HashString,
 		},
 		"env_var": &schema.Schema{
-			Type:     schema.TypeMap,
-			Optional: true,
-			Elem:     schema.TypeString,
+			Type:      schema.TypeMap,
+			Optional:  true,
+			Elem:      schema.TypeString,
+			Sensitive: true,
 		},
 		"no_blue_green_restage": &schema.Schema{
 			Type:     schema.TypeBool,

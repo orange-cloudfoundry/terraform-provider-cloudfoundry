@@ -191,8 +191,9 @@ func (c CfEnvVarGroupResource) Schema() map[string]*schema.Schema {
 						Required: true,
 					},
 					"value": &schema.Schema{
-						Type:     schema.TypeString,
-						Required: true,
+						Type:      schema.TypeString,
+						Required:  true,
+						Sensitive: true,
 					},
 					"running": &schema.Schema{
 						Type:     schema.TypeBool,
