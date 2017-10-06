@@ -97,6 +97,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudfoundry_buildpack":         resources.LoadCfDataSource(resources.CfBuildpackResource{}),
 			"cloudfoundry_service_broker":    resources.LoadCfDataSource(resources.CfServiceBrokerResource{}),
 			"cloudfoundry_domain":            resources.LoadCfDataSource(resources.CfDomainResource{}),
+			"cloudfoundry_domains":           resources.LoadCfDataSource(resources.CfDomainsDataSource{}),
 			"cloudfoundry_route":             resources.LoadCfDataSource(resources.CfRouteResource{}),
 			"cloudfoundry_service":           resources.LoadCfDataSource(resources.CfServiceResource{}),
 			"cloudfoundry_isolation_segment": resources.LoadCfDataSource(resources.CfIsolationSegmentsResource{}),

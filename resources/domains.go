@@ -326,7 +326,7 @@ func (c CfDomainResource) DataSourceRead(d *schema.ResourceData, meta interface{
 	if orgId != "" {
 		path = fmt.Sprintf("/v2/organizations/%s/private_domains", orgId)
 	}
-	err := c.listDomains(client, path, func(domain models.DomainFields) bool {
+	err := listDomains(client, path, func(domain models.DomainFields) bool {
 		d.SetId(domain.GUID)
 		return false
 	})
@@ -335,7 +335,7 @@ func (c CfDomainResource) DataSourceRead(d *schema.ResourceData, meta interface{
 	}
 	return c.Read(d, meta)
 }
-func (c CfDomainResource) listDomains(client cf_client.Client, path string, cb func(models.DomainFields) bool) error {
+func listDomains(client cf_client.Client, path string, cb func(models.DomainFields) bool) error {
 	gateway := client.Gateways().CloudControllerGateway
 	return gateway.ListPaginatedResources(
 		client.Config().ApiEndpoint,
@@ -344,4 +344,47 @@ func (c CfDomainResource) listDomains(client cf_client.Client, path string, cb f
 		func(resource interface{}) bool {
 			return cb(resource.(resources.DomainResource).ToFields())
 		})
+}
+
+type CfDomainsDataSource struct{}
+
+func (c CfDomainsDataSource) DataSourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"names": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"ids": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"org_owner_id": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+		},
+	}
+}
+func (c CfDomainsDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(cf_client.Client)
+	orgId := d.Get("org_owner_id").(string)
+	names := make([]string, 0)
+	ids := make([]string, 0)
+	path := "/v2/shared_domains?inline-relations-depth=1"
+	if orgId != "" {
+		path = fmt.Sprintf("/v2/organizations/%s/private_domains", orgId)
+	}
+	err := listDomains(client, path, func(domain models.DomainFields) bool {
+		names = append(names, domain.Name)
+		ids = append(ids, domain.GUID)
+		return true
+	})
+	if err != nil {
+		return err
+	}
+	d.Set("names", names)
+	d.Set("ids", ids)
+	return nil
 }

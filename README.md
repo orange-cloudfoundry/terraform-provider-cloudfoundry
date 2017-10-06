@@ -444,12 +444,14 @@ resource "cloudfoundry_domain" "domain_mydomain" {
 ```
 
 - **name**: (**Required**) Your domain name.
-- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which owned the domain [cloudfoundry_organization](#organizations).
+- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which own the domain [cloudfoundry_organization](#organizations).
 - **orgs_shared_id**: *(Optional, default: `null`)* Set of organization id which can have access to domain. **Note**: Only can used when not a shared domain
 - **router_group**: *(Optional, default: `null`)* Routes for this domain will be configured only on the specified router group. **Note**: Only when when it's a shared domain
 - **shared**: *(Optional, default: `false`)* If `True` this domain will be a shared domain.
 
 #### Data source
+
+##### Get one domain with all details
 
 **Note**: every parameters from resource which are not used here are marked as computed and will be filled.
 
@@ -463,7 +465,25 @@ data "cloudfoundry_domain" "domain_mydomain" {
 
 - **name**: *(Optional if `first` param set to `true`, default: `null`)* Your domain name.
 - **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first domain found in your Cloud Foundry (it will be the first shared domain if `org_owner_id` is not set).
-- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which owned the domain [cloudfoundry_organization](#organizations).
+- **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which own the domain [cloudfoundry_organization](#organizations).
+
+##### Get all domains
+
+```hcl
+data "cloudfoundry_domains" "available" {
+  org_owner_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+
+data "cloudfoundry_domain" "space_mysuperspace" {
+    name = "${data.cloudfoundry_domains.available.names[0]}"
+    org_owner_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+}
+```
+
+- **org_owner_id**: (*Optional, Default: Empty*) Organization id created from resource or data source which own the domain [cloudfoundry_organization](#organizations). 
+If not set all spaces will be retrieve.
+- **names**: (*Computed*) List of the domains name found.
+- **ids**: (*Computed*) List of the domains id found. (same order as `names`)
 
 ----
 
