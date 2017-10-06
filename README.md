@@ -107,15 +107,32 @@ resource "cloudfoundry_organization" "org_mysuperorg" {
 
 #### Data source
 
+##### Get one org with all details
+
 **Note**: every parameters from resource which are not used here are marked as computed and will be filled.
 
 ```tf
-data "cloudfoundry_organization" "org_mysuperorg" {
+data "cloudfoundry_organization" "cloudfoundry_organization" {
   name = "mysuperorg"
 }
+
+// get quota id for example: ${data.cloudfoundry_organization.cloudfoundry_organization.quota_id}
 ```
 
 - **name**: (**Required**) Name of your organization.
+
+##### Get all orgs
+
+```hcl
+data "cloudfoundry_organizations" "available" {}
+
+data "cloudfoundry_organization" "cloudfoundry_organization" {
+    name = "${data.cloudfoundry_organizations.available.names[0]}"
+}
+```
+
+- **names**: (*Computed*) List of the organizations name found.
+- **ids**: (*Computed*) List of the organizations id found. (same order as `names`)
 
 ----
 

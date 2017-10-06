@@ -183,3 +183,36 @@ func (c CfOrganizationResource) DataSourceRead(d *schema.ResourceData, meta inte
 	fn := CreateDataSourceReadFunc(c)
 	return fn(d, meta)
 }
+
+type CfOrganizationsDataSource struct{}
+
+func (c CfOrganizationsDataSource) DataSourceSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"names": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+		"ids": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
+	}
+}
+func (c CfOrganizationsDataSource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(cf_client.Client)
+	orgs, err := client.Organizations().ListOrgs(0)
+	if err != nil {
+		return err
+	}
+	names := make([]string, len(orgs))
+	ids := make([]string, len(orgs))
+	for i, org := range orgs {
+		names[i] = org.Name
+		ids[i] = org.GUID
+	}
+	d.Set("names", names)
+	d.Set("ids", ids)
+	return nil
+}
