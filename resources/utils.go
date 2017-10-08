@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/viant/toolbox"
+	"strings"
 )
 
 // Giving missing security groups from a source which are not in a slice of security groups
@@ -29,9 +30,6 @@ func containsSecGroup(s []models.SecurityGroupFields, e models.SecurityGroupFiel
 }
 func CreateDataSourceSchema(resource CfResource, keysUntouch ...string) map[string]*schema.Schema {
 	schemas := resource.Schema()
-	if len(keysUntouch) == 0 {
-		keysUntouch = append(keysUntouch, "name")
-	}
 
 	for key, resSchema := range schemas {
 		resSchema.ForceNew = false
@@ -43,6 +41,10 @@ func CreateDataSourceSchema(resource CfResource, keysUntouch ...string) map[stri
 		resSchema.Computed = true
 		resSchema.Required = false
 		resSchema.Optional = false
+	}
+	schemas["guid"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
 	}
 	return schemas
 }
@@ -60,6 +62,24 @@ func CreateDataSourceReadFunc(resource CfResource) func(d *schema.ResourceData, 
 			return fmt.Errorf("Can't found data source requested with name '%s'.", name)
 		}
 		return resource.Read(d, meta)
+	}
+}
+func CreateDataSourceReadFuncWithReq(resource CfResource, required ...string) func(d *schema.ResourceData, meta interface{}) error {
+	return func(d *schema.ResourceData, meta interface{}) error {
+		if d.Get("guid").(string) != "" {
+			d.SetId(d.Get("guid").(string))
+			return CreateDataSourceReadFunc(resource)(d, meta)
+		}
+		for _, req := range required {
+			_, isZero := d.GetOk(req)
+			if isZero {
+				return fmt.Errorf(
+					"guid must be set or %s",
+					strings.Join(required, " and "),
+				)
+			}
+		}
+		return CreateDataSourceReadFunc(resource)(d, meta)
 	}
 }
 func ConvertParamsToMap(params string) map[string]interface{} {

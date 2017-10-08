@@ -195,6 +195,6 @@ func (c CfIsolationSegmentsResource) DataSourceSchema() map[string]*schema.Schem
 	return CreateDataSourceSchema(c)
 }
 func (c CfIsolationSegmentsResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
-	fn := CreateDataSourceReadFunc(c)
+	fn := CreateDataSourceReadFuncWithReq(c, "name")
 	return fn(d, meta)
 }

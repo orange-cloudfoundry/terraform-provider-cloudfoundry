@@ -782,5 +782,5 @@ func (c CfAppsResource) DataSourceSchema() map[string]*schema.Schema {
 	return CreateDataSourceSchema(c)
 }
 func (c CfAppsResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
-	return CreateDataSourceReadFunc(c)(d, meta)
+	return CreateDataSourceReadFuncWithReq(c, "name")(d, meta)
 }

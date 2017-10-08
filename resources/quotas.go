@@ -265,9 +265,9 @@ func (c CfQuotaResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfQuotaResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c, "name", "org_id")
+	return CreateDataSourceSchema(c)
 }
 func (c CfQuotaResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
-	fn := CreateDataSourceReadFunc(c)
+	fn := CreateDataSourceReadFuncWithReq(c, "name", "org_id")
 	return fn(d, meta)
 }

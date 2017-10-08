@@ -250,10 +250,10 @@ func (c CfSpaceResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfSpaceResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c, "name", "org_id")
+	return CreateDataSourceSchema(c)
 }
 func (c CfSpaceResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
-	fn := CreateDataSourceReadFunc(c)
+	fn := CreateDataSourceReadFuncWithReq(c, "name", "org_id")
 	return fn(d, meta)
 }
 

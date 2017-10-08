@@ -314,10 +314,7 @@ func (c CfDomainResource) DataSourceSchema() map[string]*schema.Schema {
 }
 func (c CfDomainResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	if !d.Get("first").(bool) {
-		if d.Get("name").(string) == "" {
-			return fmt.Errorf("You must set param 'name' if the param 'first' is to false.")
-		}
-		fn := CreateDataSourceReadFunc(c)
+		fn := CreateDataSourceReadFuncWithReq(c, "name")
 		return fn(d, meta)
 	}
 	client := meta.(cf_client.Client)

@@ -15,6 +15,10 @@ func (c CfStackResource) DataSourceSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"guid": &schema.Schema{
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"first": &schema.Schema{
 			Type:     schema.TypeBool,
 			Optional: true,
@@ -31,11 +35,18 @@ func (c CfStackResource) DataSourceRead(d *schema.ResourceData, meta interface{}
 		c.flattenStack(d, stacks[0])
 		return nil
 	}
+	stackId := d.Get("guid").(string)
 	name := d.Get("name").(string)
-	if name == "" {
-		return fmt.Errorf("You must set param 'name' if the param 'first' is to false.")
+	if name == "" && stackId == "" {
+		return fmt.Errorf("You must set param 'name' or 'stack_id' if the param 'first' is to false.")
 	}
-	stack, err := client.Stack().FindByName(name)
+	var stack models.Stack
+	var err error
+	if stackId != "" {
+		stack, err = client.Stack().FindByGUID(stackId)
+	} else {
+		stack, err = client.Stack().FindByName(name)
+	}
 	if err != nil {
 		return err
 	}
