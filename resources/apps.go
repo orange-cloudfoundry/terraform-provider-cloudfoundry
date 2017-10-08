@@ -531,6 +531,9 @@ func (c CfAppsResource) IsBitsDiff(d *schema.ResourceData) bool {
 	return d.HasChange("bits_has_changed") || d.Get("bits_has_changed").(string) != ""
 }
 func (c CfAppsResource) updateBitsDiff(d *schema.ResourceData, meta interface{}) error {
+	if d.Get("path").(string) == "" {
+		return nil
+	}
 	client := meta.(cf_client.Client)
 	bm := c.MakeBitsManager(meta)
 	isDiffLocal, sha1Local, err := bm.IsDiff(d.Get("path").(string), d.Get("path_sha1").(string))
@@ -779,7 +782,7 @@ func (c CfAppsResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfAppsResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c)
+	return CreateDataSourceSchema(c, "name")
 }
 func (c CfAppsResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	return CreateDataSourceReadFuncWithReq(c, "name")(d, meta)

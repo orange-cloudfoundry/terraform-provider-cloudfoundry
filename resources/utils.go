@@ -33,16 +33,17 @@ func CreateDataSourceSchema(resource CfResource, keysUntouch ...string) map[stri
 
 	for key, resSchema := range schemas {
 		resSchema.ForceNew = false
+		resSchema.Required = false
+		resSchema.Optional = true
 		if toolbox.HasSliceAnyElements(keysUntouch, key) {
 			continue
 		}
 		resSchema.Default = nil
 		resSchema.ValidateFunc = nil
 		resSchema.Computed = true
-		resSchema.Required = false
 		resSchema.Optional = false
 	}
-	schemas["guid"] = &schema.Schema{
+	schemas["by_id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Optional: true,
 	}
@@ -66,16 +67,16 @@ func CreateDataSourceReadFunc(resource CfResource) func(d *schema.ResourceData, 
 }
 func CreateDataSourceReadFuncWithReq(resource CfResource, required ...string) func(d *schema.ResourceData, meta interface{}) error {
 	return func(d *schema.ResourceData, meta interface{}) error {
-		if d.Get("guid").(string) != "" {
-			d.SetId(d.Get("guid").(string))
+		if d.Get("by_id").(string) != "" {
+			d.SetId(d.Get("by_id").(string))
 			return CreateDataSourceReadFunc(resource)(d, meta)
 		}
 		for _, req := range required {
-			_, isZero := d.GetOk(req)
-			if isZero {
+			_, notZero := d.GetOk(req)
+			if !notZero {
 				return fmt.Errorf(
-					"guid must be set or %s",
-					strings.Join(required, " and "),
+					"'by_id' must be set or '%s'",
+					strings.Join(required, "' and '"),
 				)
 			}
 		}

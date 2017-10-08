@@ -1,8 +1,6 @@
 # terraform-provider-cloudfoundry  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry)
 
-This is a work in progress, meaning the syntax may change in the future, and the implementation is being hardened. The [design proposal document](https://docs.google.com/document/d/1d5XUPu08wLNTdCLYz-Fi--ogFZdtn3f_BcR-gzW6AXM/edit#) provides more background on the intended use-cases, and the next potential resources to be added. Feedback and contributions are welcomed.
-
-This terraformp provider supports the use-case of managing a Cloud Foundry instance, with current support for:
+This terraform provider supports the use-case of managing a Cloud Foundry instance, with current support for:
 - [Organizations](#organizations)
 - [Spaces](#spaces)
 - [Quotas](#quotas) (Space and Organization ones)
@@ -17,6 +15,8 @@ This terraformp provider supports the use-case of managing a Cloud Foundry insta
 - [Environment Variable Group](#environment-variable-group)
 - [Applications](#applications)
 - [Service brokers](#service-brokers) ([Support gpg encryption on password](#enable-password-encryption))
+
+You can also find useful [terraform modules](https://www.terraform.io/docs/modules/index.html) at https://github.com/orange-cloudfoundry/terraform-cloudfoundry-modules.
 
 ## Installations
 
@@ -114,14 +114,14 @@ resource "cloudfoundry_organization" "org_mysuperorg" {
 ```tf
 data "cloudfoundry_organization" "org_mysuperorg" {
   name = "mysuperorg"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 
 // get quota id for example: ${data.cloudfoundry_organization.cloudfoundry_organization.quota_id}
 ```
 
-- **name**: (**Required if guid not set**) Name of your organization.
-- **guid**: (**Required if name not set**) Guid of your organization.
+- **name**: (**Required if by_id not set**) Name of your organization.
+- **by_id**: (**Required if name not set**) by_id of your organization.
 
 ##### Get all orgs
 
@@ -168,13 +168,13 @@ resource "cloudfoundry_space" "space_mysuperspace" {
 data "cloudfoundry_space" "space_mysuperspace" {
     name = "mysuperspace"
     org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
-    // or guid = "a-guid"
+    // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your space.
-- **org_id**: (**Required if guid not set**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
-- **guid**: (**Required if name not set**) guid of your space.
+- **name**: (**Required if by_id not set**) Name of your space.
+- **org_id**: (**Required if by_id not set**) Organization id created from resource or data source [cloudfoundry_organization](#organizations).
+- **by_id**: (**Required if name not set**) by_id of your space.
 
 ##### Get all spaces
 
@@ -235,13 +235,13 @@ resource "cloudfoundry_quota" "quota_for_ahalet" {
 data "cloudfoundry_quota" "quota_for_ahalet" {
   name = "quotaAhalet"
   org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your quota.
+- **name**: (**Required if by_id not set**) Name of your quota.
 - **org_id**: *(Optional, default: `null`)* If set to an organization id created from resource or data source [cloudfoundry_organization](#organizations), it will be considered as organization quota, else it will be a space quota.
-- **guid**: (**Required if name not set**) guid of your quota.
+- **by_id**: (**Required if name not set**) by_id of your quota.
 
 ----
 
@@ -294,12 +294,12 @@ resource "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
 ```tf
 data "cloudfoundry_sec_group" "sec_group_mysupersecgroup" {
   name = "mysupersecgroup"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your security group.
-- **guid**: (**Required if name not set**) guid of your security group.
+- **name**: (**Required if by_id not set**) Name of your security group.
+- **by_id**: (**Required if name not set**) by_id of your security group.
 
 ----
 
@@ -330,12 +330,12 @@ resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
 ```tf
 resource "cloudfoundry_buildpack" "buildpack_mysuperbuildpack" {
   name = "mysuperbuildpack"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your buildpack.
-- **guid**: (**Required if name not set**) guid of your buildpack.
+- **name**: (**Required if by_id not set**) Name of your buildpack.
+- **by_id**: (**Required if name not set**) by_id of your buildpack.
 
 ----
 
@@ -431,13 +431,13 @@ resource "cloudfoundry_service" "svc_ups" {
 data "cloudfoundry_service" "svc_ups" {
   name = "my-ups"
   space_id = "${cloudfoundry_space.space_mysuperspace.id}"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your service.
-- **space_id**: (**Required if guid not set**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register service inside.
-- **guid**: (**Required if name not set**) guid of your service.
+- **name**: (**Required if by_id not set**) Name of your service.
+- **space_id**: (**Required if by_id not set**) Space id created from resource or data source [cloudfoundry_space](#spaces) to register service inside.
+- **by_id**: (**Required if name not set**) by_id of your service.
 
 ----
 
@@ -472,14 +472,14 @@ data "cloudfoundry_domain" "domain_mydomain" {
   name = "my.domain.com"
   org_owner_id = "${cloudfoundry_organization.org_mysuperorg.id}"
   first = false
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
 - **name**: *(Optional if `first` param set to `true`, default: `null`)* Your domain name.
-- **first**: *(Optional, default: `null`)* If set to `true` parameter `name` or `guid` become unnecessary and will give the first domain found in your Cloud Foundry (it will be the first shared domain if `org_owner_id` is not set).
+- **first**: *(Optional, default: `null`)* If set to `true` parameter `name` or `by_id` become unnecessary and will give the first domain found in your Cloud Foundry (it will be the first shared domain if `org_owner_id` is not set).
 - **org_owner_id**: (**Required if not shared**) Organization id created from resource or data source which own the domain [cloudfoundry_organization](#organizations).
-- **guid**: *(Optional if `first` param set to `true` or `name` param set, default: `null`)* guid of your domain.
+- **by_id**: *(Optional if `first` param set to `true` or `name` param set, default: `null`)* by_id of your domain.
 
 ##### Get all domains
 
@@ -539,17 +539,17 @@ resource "cloudfoundry_route" "route_superroute" {
   domain_id = "${cloudfoundry_domain.domain_mydomain.id}"
   port = -1
   path = ""
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Your hostname.
-- **domain_id**: (**Required if guid not set**) Domain id created from resource or data source [domains](#domains).
+- **name**: (**Required if by_id not set**) Your hostname.
+- **domain_id**: (**Required if by_id not set**) Domain id created from resource or data source [domains](#domains).
 - **port**: *(Optional, default: `-1`)* Set a port for your route (only works with a tcp domain). **Note**: If `0` a random port will be chose
 - **path**: *(Optional, default: `null`)* Set a path for your route (only works with a http(s) domain).
 - **protocol**: *(Optional, default: `null`)*  This parameter is only for uri computed parameter it permits to override 
   the protocol when generating uri (generated uri will use always `https` protocol when it's an http route, you can found useful to force in `http`).
-- **guid**: (**Required if name not set**) guid of your route.
+- **by_id**: (**Required if name not set**) by_id of your route.
 
 ----
 
@@ -566,13 +566,13 @@ resource "cloudfoundry_route" "route_superroute" {
 resource "cloudfoundry_isolation_segment" "my_isolation_segment" {
   name = "isolation_segment_name_set_in_cf_deployment"
   orgs_id = ["${cloudfoundry_organization.org_mysuperorg.id}"]
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Isolation segment that you have set on your cloud foundry deployment.
+- **name**: (**Required if by_id not set**) Isolation segment that you have set on your cloud foundry deployment.
 - **orgs_id**: (**Required**) *(Optional, default: `null`)* You can pass a list of organization created from resource or data source [cloudfoundry_organization](#organizations), this will put those organizations in the isolation segment.
-- **guid**: (**Required if name not set**) guid of your isolation segment.
+- **by_id**: (**Required if name not set**) by_id of your isolation segment.
 
 #### Data source
 
@@ -602,13 +602,13 @@ data "cloudfoundry_isolation_segment" "my_isolation_segment" {
 data "cloudfoundry_stack" "my_stack" {
   name = "cflinuxfs2"
   first = false
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
 - **name**: *(Optional if `first` param set to `true`, default: `null`)* Name of the stack.
 - **first**: *(Optional, default: `null`)* If set to `true` parameter `name` become unnecessary and will give the first stack found in your Cloud Foundry.
-- **guid**: *(Optional if `first` param set to `true` or `name` param set, default: `null`)* guid of your stack.
+- **by_id**: *(Optional if `first` param set to `true` or `name` param set, default: `null`)* by_id of your stack.
 
 ----
 
@@ -691,12 +691,12 @@ resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
 ```tf
 resource "cloudfoundry_service_broker" "service_broker_mysuperbroker" {
   name = "mysuperbroker"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your service broker.
-- **guid**: (**Required if name not set**) guid of your service broker.
+- **name**: (**Required if by_id not set**) Name of your service broker.
+- **by_id**: (**Required if name not set**) by_id of your service broker.
 
 ### Applications
 
@@ -783,13 +783,13 @@ resource "cloudfoundry_app" "myapp" {
 resource "cloudfoundry_service_broker" "myapp" {
   name = "mysuperbroker"
   space_id = "${data.cloudfoundry_space.space_mysuperspace.id}"
-  // or guid = "a-guid"
+  // or by_id = "a-guid"
 }
 ```
 
-- **name**: (**Required if guid not set**) Name of your app. If `space_id` set it will try to find the first matching app found in all spaces you have access to.
+- **name**: (**Required if by_id not set**) Name of your app. If `space_id` set it will try to find the first matching app found in all spaces you have access to.
 - **space_id**: *(Optional, default: `null`)* Space id created from resource or data source [spaces](#spaces).
-- **guid**: (**Required if name not set**) guid of your service broker.
+- **by_id**: (**Required if name not set**) by_id of your service broker.
 
 ## Enable password encryption
 

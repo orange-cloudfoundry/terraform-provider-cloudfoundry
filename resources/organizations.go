@@ -177,7 +177,7 @@ func (c CfOrganizationResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfOrganizationResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c)
+	return CreateDataSourceSchema(c, "name")
 }
 func (c CfOrganizationResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	fn := CreateDataSourceReadFuncWithReq(c, "name")

@@ -765,7 +765,7 @@ func (c CfServiceBrokerResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfServiceBrokerResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c)
+	return CreateDataSourceSchema(c, "name")
 }
 func (c CfServiceBrokerResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
 	fn := CreateDataSourceReadFuncWithReq(c, "name")

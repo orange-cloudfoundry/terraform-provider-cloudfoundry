@@ -301,11 +301,7 @@ func (c CfDomainResource) Schema() map[string]*schema.Schema {
 	}
 }
 func (c CfDomainResource) DataSourceSchema() map[string]*schema.Schema {
-	schemas := CreateDataSourceSchema(c)
-	schemas["name"].Optional = true
-	schemas["name"].Required = false
-	schemas["org_owner_id"].Optional = true
-	schemas["org_owner_id"].Computed = false
+	schemas := CreateDataSourceSchema(c, "name", "org_owner_id")
 	schemas["first"] = &schema.Schema{
 		Type:     schema.TypeBool,
 		Optional: true,
