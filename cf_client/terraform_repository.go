@@ -421,9 +421,11 @@ func (c *TerraformRepository) UAAOAuthClientSecret() (clientID string) {
 	})
 	return
 }
+
 func (c *TerraformRepository) CLIVersion() string {
 	return CLI_VERSION
 }
+
 func (c *TerraformRepository) read(cb func()) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()

@@ -145,11 +145,6 @@ func (client *CfClient) Init() error {
 	i18n.T = i18n.Init(repository)
 	//Retry Wrapper
 	logger := NewCfLogger(client.config.Verbose)
-	gateways := NewCloudFoundryGateways(
-		repository,
-		logger,
-	)
-	client.gateways = gateways
 
 	client.uaaClient = uaa.NewClient(uaa.Config{
 		AppName:           client.config.AppName,
@@ -160,8 +155,17 @@ func (client *CfClient) Init() error {
 		SkipSSLValidation: client.config.SkipSSLValidation(),
 		URL:               ccClient.TokenEndpoint(),
 	})
-	client.uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(client.uaaClient, gateways.Config))
+	client.uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(client.uaaClient, repository))
 	client.uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
+
+	gateways := NewCloudFoundryGateways(
+		repository,
+		logger,
+		client.uaaClient,
+	)
+	client.gateways = gateways
+
+
 
 	client.uaaRepo = authentication.NewUAARepository(gateways.UAAGateway,
 		repository,
