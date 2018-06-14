@@ -1,5 +1,20 @@
 # terraform-provider-cloudfoundry  [![Build Status](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry.svg?branch=master)](https://travis-ci.org/orange-cloudfoundry/terraform-provider-cloudfoundry)
 
+## Depreciation and migration steps
+
+This provider is being **deprecated** in favor of https://github.com/mevansam/terraform-provider-cf which aims at moving to the https://github.com/terraform-providers github organization and becoming an official terraform provider.
+
+The migration from `terraform-provider-cloudfoundry` to `terraform-provider-cf` can follow the procedure below:
+* manually convert the config file from the `terraform-provider-cloudfoundry` resource to `terraform-provider-cf` resources. This can be made easier through IDE completion, see https://github.com/mevansam/terraform-provider-cf/pull/4
+* import CF resources into TF state. For each resource type:
+   * Identify current resources and their ids, e.g. ``terraform state list | grep cloudfoundry_domain | xargs -n 1 terraform state show ``
+   * Import the resource in TF state (manually for through upcoming [importeability support in terraform-provider-cf](https://github.com/mevansam/terraform-provider-cf/issues/6)
+   * Remove the `terraform-provider-cloudfoundry` resource from tfstate e.g. ``terraform state list | grep cloudfoundry_domain | xargs -n 1 terraform state remove ``
+
+Potentially, such migration steps can be automated and scheduled into CI/CD such as https://github.com/ljfranklin/terraform-resource/issues/41
+
+## Overview
+
 This terraform provider supports the use-case of managing a Cloud Foundry instance, with current support for:
 - [Organizations](#organizations)
 - [Spaces](#spaces)
