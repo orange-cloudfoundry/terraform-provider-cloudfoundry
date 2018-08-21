@@ -146,6 +146,11 @@ func (client *CfClient) Init() error {
 	//Retry Wrapper
 	logger := NewCfLogger(client.config.Verbose)
 	client.uaaClient = uaa.NewClient(repository)
+	err = client.uaaClient.SetupResources(ccClient.AuthorizationEndpoint())
+	if err != nil {
+		return err
+	}
+
 	client.uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(client.uaaClient, repository))
 	client.uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
 
