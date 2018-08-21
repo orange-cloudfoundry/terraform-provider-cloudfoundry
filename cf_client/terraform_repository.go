@@ -86,7 +86,7 @@ func (c *TerraformRepository) BinaryVersion() string {
 }
 
 func (c *TerraformRepository) DialTimeout() time.Duration {
-	return time.Duration(1) * time.Second
+	return 30 * time.Second
 }
 
 func (c *TerraformRepository) SetUAAEndpoint(uaaEndpoint string) {
