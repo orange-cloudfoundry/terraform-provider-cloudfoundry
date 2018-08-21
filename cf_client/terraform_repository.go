@@ -6,6 +6,7 @@ import (
 	"github.com/blang/semver"
 	"strings"
 	"sync"
+	"time"
 )
 
 const CLI_VERSION = "2.80.0"
@@ -31,6 +32,10 @@ type TerraformRepository struct {
 	minRecommendedCLIVersion string
 	uaaOAuthClient           string
 	uaaOAuthClientSecret     string
+	grantType                string
+	appName                  string
+	appVersion               string
+	skipInsecureSSL          bool
 	space                    models.SpaceFields
 	org                      models.OrganizationFields
 	mutex                    *sync.RWMutex
@@ -70,6 +75,42 @@ func (c *TerraformRepository) DopplerEndpoint() (dopplerEndpoint string) {
 		return strings.Replace(c.LoggregatorEndpoint(), "loggregator", "doppler", 1)
 	}
 	return
+}
+
+func (c *TerraformRepository) BinaryName() string {
+	return c.appName
+}
+
+func (c *TerraformRepository) BinaryVersion() string {
+	return c.appVersion
+}
+
+func (c *TerraformRepository) DialTimeout() time.Duration {
+	return time.Duration(1) * time.Second
+}
+
+func (c *TerraformRepository) SetUAAEndpoint(uaaEndpoint string) {
+	c.write(func() {
+		c.uaaEndpoint = uaaEndpoint
+	})
+}
+
+func (c *TerraformRepository) UAADisableKeepAlives() bool {
+	return false
+}
+
+func (c *TerraformRepository) UAAGrantType() string {
+	return ""
+}
+
+func (c *TerraformRepository) SetUAAGrantType(grantType string) {
+	c.write(func() {
+		c.grantType = grantType
+	})
+}
+
+func (c *TerraformRepository) SkipSSLValidation() bool {
+	return c.skipInsecureSSL
 }
 
 func (c *TerraformRepository) UaaEndpoint() (uaaEndpoint string) {
@@ -445,8 +486,11 @@ func (c *TerraformRepository) Close() {
 		// perform a read to ensure write lock has been cleared
 	})
 }
-func NewTerraformRepository() coreconfig.Repository {
+func NewTerraformRepository(appName, appVersion string, skipInsecureSSL bool) *TerraformRepository {
 	return &TerraformRepository{
-		mutex: new(sync.RWMutex),
+		mutex:           new(sync.RWMutex),
+		appName:         appName,
+		appVersion:      appVersion,
+		skipInsecureSSL: skipInsecureSSL,
 	}
 }

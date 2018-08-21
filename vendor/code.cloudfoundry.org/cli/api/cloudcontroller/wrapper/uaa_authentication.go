@@ -1,10 +1,6 @@
 package wrapper
 
 import (
-	"bytes"
-	"io/ioutil"
-	"net/http"
-
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 	"code.cloudfoundry.org/cli/api/uaa"
@@ -14,7 +10,7 @@ import (
 
 // UAAClient is the interface for getting a valid access token
 type UAAClient interface {
-	RefreshAccessToken(refreshToken string) (uaa.RefreshToken, error)
+	RefreshAccessToken(refreshToken string) (uaa.RefreshedTokens, error)
 }
 
 //go:generate counterfeiter . TokenCache
@@ -44,10 +40,40 @@ func NewUAAAuthentication(client UAAClient, cache TokenCache) *UAAAuthentication
 	}
 }
 
-// Wrap sets the connection on the UAAAuthentication and returns itself
-func (t *UAAAuthentication) Wrap(innerconnection cloudcontroller.Connection) cloudcontroller.Connection {
-	t.connection = innerconnection
-	return t
+// Make adds authentication headers to the passed in request and then calls the
+// wrapped connection's Make. If the client is not set on the wrapper, it will
+// not add any header or handle any authentication errors.
+func (t *UAAAuthentication) Make(request *cloudcontroller.Request, passedResponse *cloudcontroller.Response) error {
+	if t.client == nil {
+		return t.connection.Make(request, passedResponse)
+	}
+
+	request.Header.Set("Authorization", t.cache.AccessToken())
+
+	requestErr := t.connection.Make(request, passedResponse)
+	if _, ok := requestErr.(ccerror.InvalidAuthTokenError); ok {
+		tokens, err := t.client.RefreshAccessToken(t.cache.RefreshToken())
+		if err != nil {
+			return err
+		}
+
+		t.cache.SetAccessToken(tokens.AuthorizationToken())
+		t.cache.SetRefreshToken(tokens.RefreshToken)
+
+		if request.Body != nil {
+			err = request.ResetBody()
+			if err != nil {
+				if _, ok := err.(ccerror.PipeSeekError); ok {
+					return ccerror.PipeSeekError{Err: requestErr}
+				}
+				return err
+			}
+		}
+		request.Header.Set("Authorization", t.cache.AccessToken())
+		requestErr = t.connection.Make(request, passedResponse)
+	}
+
+	return requestErr
 }
 
 // SetClient sets the UAA client that the wrapper will use.
@@ -55,47 +81,8 @@ func (t *UAAAuthentication) SetClient(client UAAClient) {
 	t.client = client
 }
 
-// Make adds authentication headers to the passed in request and then calls the
-// wrapped connection's Make. If the client is not set on the wrapper, it will
-// not add any header or handle any authentication errors.
-func (t *UAAAuthentication) Make(request *http.Request, passedResponse *cloudcontroller.Response) error {
-	if t.client == nil {
-		return t.connection.Make(request, passedResponse)
-	}
-
-	var (
-		err            error
-		rawRequestBody []byte
-	)
-
-	if request.Body != nil {
-		rawRequestBody, err = ioutil.ReadAll(request.Body)
-		defer request.Body.Close()
-		if err != nil {
-			return err
-		}
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(rawRequestBody))
-	}
-
-	request.Header.Set("Authorization", t.cache.AccessToken())
-
-	err = t.connection.Make(request, passedResponse)
-	if _, ok := err.(ccerror.InvalidAuthTokenError); ok {
-		var token uaa.RefreshToken
-		token, err = t.client.RefreshAccessToken(t.cache.RefreshToken())
-		if err != nil {
-			return err
-		}
-
-		t.cache.SetAccessToken(token.AuthorizationToken())
-		t.cache.SetRefreshToken(token.RefreshToken)
-
-		if rawRequestBody != nil {
-			request.Body = ioutil.NopCloser(bytes.NewBuffer(rawRequestBody))
-		}
-		request.Header.Set("Authorization", t.cache.AccessToken())
-		err = t.connection.Make(request, passedResponse)
-	}
-
-	return err
+// Wrap sets the connection on the UAAAuthentication and returns itself
+func (t *UAAAuthentication) Wrap(innerconnection cloudcontroller.Connection) cloudcontroller.Connection {
+	t.connection = innerconnection
+	return t
 }

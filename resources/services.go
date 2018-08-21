@@ -65,6 +65,7 @@ func (c CfServiceResource) Create(d *schema.ResourceData, meta interface{}) erro
 				svc.SysLogDrainURL,
 				svc.RouteServiceURL,
 				svc.Params,
+				[]string{},
 			)
 		}
 		if err != nil {

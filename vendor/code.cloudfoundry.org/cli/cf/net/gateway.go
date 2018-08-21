@@ -198,7 +198,6 @@ func (gateway Gateway) newRequest(request *http.Request, accessToken string, bod
 	}
 
 	request.Header.Set("accept", "application/json")
-	request.Header.Set("Connection", "close")
 	request.Header.Set("content-type", "application/json")
 	request.Header.Set("User-Agent", "go-cli "+version.VersionString()+" / "+runtime.GOOS)
 
@@ -435,9 +434,11 @@ func (gateway Gateway) doRequest(request *http.Request) (*http.Response, error) 
 
 	httpClient.DumpResponse(response)
 
-	header := http.CanonicalHeaderKey("X-Cf-Warnings")
-	rawWarnings := response.Header[header]
+	rawWarnings := strings.Split(response.Header.Get("X-Cf-Warnings"), ",")
 	for _, rawWarning := range rawWarnings {
+		if rawWarning == "" {
+			continue
+		}
 		warning, _ := url.QueryUnescape(rawWarning)
 		*gateway.warnings = append(*gateway.warnings, warning)
 	}
@@ -447,6 +448,7 @@ func (gateway Gateway) doRequest(request *http.Request) (*http.Response, error) 
 
 func makeHTTPTransport(gateway *Gateway) {
 	gateway.transport = &http.Transport{
+		DisableKeepAlives: true,
 		Dial: (&net.Dialer{
 			KeepAlive: 30 * time.Second,
 			Timeout:   gateway.DialTimeout,

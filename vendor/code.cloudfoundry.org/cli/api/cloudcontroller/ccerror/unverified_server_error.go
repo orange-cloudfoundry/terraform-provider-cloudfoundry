@@ -6,6 +6,6 @@ type UnverifiedServerError struct {
 	URL string
 }
 
-func (e UnverifiedServerError) Error() string {
+func (UnverifiedServerError) Error() string {
 	return "x509: certificate signed by unknown authority"
 }

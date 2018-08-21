@@ -3,7 +3,6 @@ package ccv3
 import (
 	"bytes"
 	"encoding/json"
-	"net/url"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
@@ -12,8 +11,10 @@ import (
 
 // IsolationSegment represents a Cloud Controller Isolation Segment.
 type IsolationSegment struct {
-	Name string `json:"name"`
+	//GUID is the unique ID of the isolation segment.
 	GUID string `json:"guid,omitempty"`
+	//Name is the name of the isolation segment.
+	Name string `json:"name"`
 }
 
 // CreateIsolationSegment will create an Isolation Segment on the Cloud
@@ -27,7 +28,7 @@ func (client *Client) CreateIsolationSegment(isolationSegment IsolationSegment) 
 
 	request, err := client.newHTTPRequest(requestOptions{
 		RequestName: internal.PostIsolationSegmentsRequest,
-		Body:        bytes.NewBuffer(body),
+		Body:        bytes.NewReader(body),
 	})
 	if err != nil {
 		return IsolationSegment{}, nil, err
@@ -42,8 +43,48 @@ func (client *Client) CreateIsolationSegment(isolationSegment IsolationSegment) 
 	return responseIsolationSegment, response.Warnings, err
 }
 
+// DeleteIsolationSegment removes an isolation segment from the cloud
+// controller. Note: This will only remove it from the cloud controller
+// database. It will not remove it from diego.
+func (client *Client) DeleteIsolationSegment(guid string) (Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.DeleteIsolationSegmentRequest,
+		URIParams:   map[string]string{"isolation_segment_guid": guid},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var response cloudcontroller.Response
+	err = client.connection.Make(request, &response)
+	return response.Warnings, err
+}
+
+// GetIsolationSegment returns back the requested isolation segment that
+// matches the GUID.
+func (client *Client) GetIsolationSegment(guid string) (IsolationSegment, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetIsolationSegmentRequest,
+		URIParams:   map[string]string{"isolation_segment_guid": guid},
+	})
+	if err != nil {
+		return IsolationSegment{}, nil, err
+	}
+	var isolationSegment IsolationSegment
+	response := cloudcontroller.Response{
+		Result: &isolationSegment,
+	}
+
+	err = client.connection.Make(request, &response)
+	if err != nil {
+		return IsolationSegment{}, response.Warnings, err
+	}
+
+	return isolationSegment, response.Warnings, nil
+}
+
 // GetIsolationSegments lists isolation segments with optional filters.
-func (client *Client) GetIsolationSegments(query url.Values) ([]IsolationSegment, Warnings, error) {
+func (client *Client) GetIsolationSegments(query ...Query) ([]IsolationSegment, Warnings, error) {
 	request, err := client.newHTTPRequest(requestOptions{
 		RequestName: internal.GetIsolationSegmentsRequest,
 		Query:       query,
@@ -66,44 +107,4 @@ func (client *Client) GetIsolationSegments(query url.Values) ([]IsolationSegment
 	})
 
 	return fullIsolationSegmentsList, warnings, err
-}
-
-// GetIsolationSegment returns back the requested isolation segment that
-// matches the GUID.
-func (client *Client) GetIsolationSegment(guid string) (IsolationSegment, Warnings, error) {
-	request, err := client.newHTTPRequest(requestOptions{
-		RequestName: internal.GetIsolationSegmentRequest,
-		URIParams:   map[string]string{"guid": guid},
-	})
-	if err != nil {
-		return IsolationSegment{}, nil, err
-	}
-	var isolationSegment IsolationSegment
-	response := cloudcontroller.Response{
-		Result: &isolationSegment,
-	}
-
-	err = client.connection.Make(request, &response)
-	if err != nil {
-		return IsolationSegment{}, response.Warnings, err
-	}
-
-	return isolationSegment, response.Warnings, nil
-}
-
-// DeleteIsolationSegment removes an isolation segment from the cloud
-// controller. Note: This will only remove it from the cloud controller
-// database. It will not remove it from diego.
-func (client *Client) DeleteIsolationSegment(guid string) (Warnings, error) {
-	request, err := client.newHTTPRequest(requestOptions{
-		RequestName: internal.DeleteIsolationSegmentRequest,
-		URIParams:   map[string]string{"guid": guid},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var response cloudcontroller.Response
-	err = client.connection.Make(request, &response)
-	return response.Warnings, err
 }

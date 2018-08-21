@@ -1,24 +1,11 @@
 package ccv2
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2/constant"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2/internal"
-)
-
-// ApplicationInstanceState reflects the state of the individual app
-// instance.
-type ApplicationInstanceState string
-
-const (
-	ApplicationInstanceCrashed  ApplicationInstanceState = "CRASHED"
-	ApplicationInstanceDown     ApplicationInstanceState = "DOWN"
-	ApplicationInstanceFlapping ApplicationInstanceState = "FLAPPING"
-	ApplicationInstanceRunning  ApplicationInstanceState = "RUNNING"
-	ApplicationInstanceStarting ApplicationInstanceState = "STARTING"
-	ApplicationInstanceUnknown  ApplicationInstanceState = "UNKNOWN"
 )
 
 // ApplicationInstance represents a Cloud Controller Application Instance.
@@ -34,7 +21,7 @@ type ApplicationInstance struct {
 	Since float64
 
 	// State is the instance's state.
-	State ApplicationInstanceState
+	State constant.ApplicationInstanceState
 }
 
 // UnmarshalJSON helps unmarshal a Cloud Controller application instance
@@ -45,21 +32,22 @@ func (instance *ApplicationInstance) UnmarshalJSON(data []byte) error {
 		Since   float64 `json:"since"`
 		State   string  `json:"state"`
 	}
-	if err := json.Unmarshal(data, &ccInstance); err != nil {
+	err := cloudcontroller.DecodeJSON(data, &ccInstance)
+	if err != nil {
 		return err
 	}
 
 	instance.Details = ccInstance.Details
-	instance.State = ApplicationInstanceState(ccInstance.State)
+	instance.State = constant.ApplicationInstanceState(ccInstance.State)
 	instance.Since = ccInstance.Since
 
 	return nil
 }
 
-// GetApplicationInstancesByApplication returns a list of ApplicationInstance
-// for a given application. Given the state of an application, it might skip
+// GetApplicationApplicationInstances returns a list of ApplicationInstance for
+// a given application. Depending on the state of an application, it might skip
 // some application instances.
-func (client *Client) GetApplicationInstancesByApplication(guid string) (map[int]ApplicationInstance, Warnings, error) {
+func (client *Client) GetApplicationApplicationInstances(guid string) (map[int]ApplicationInstance, Warnings, error) {
 	request, err := client.newHTTPRequest(requestOptions{
 		RequestName: internal.GetAppInstancesRequest,
 		URIParams:   Params{"app_guid": guid},
@@ -80,13 +68,13 @@ func (client *Client) GetApplicationInstancesByApplication(guid string) (map[int
 
 	returnedInstances := map[int]ApplicationInstance{}
 	for instanceID, instance := range instances {
-		id, err := strconv.Atoi(instanceID)
-		if err != nil {
-			return nil, response.Warnings, err
+		id, convertErr := strconv.Atoi(instanceID)
+		if convertErr != nil {
+			return nil, response.Warnings, convertErr
 		}
 		instance.ID = id
 		returnedInstances[id] = instance
 	}
 
-	return returnedInstances, response.Warnings, err
+	return returnedInstances, response.Warnings, nil
 }

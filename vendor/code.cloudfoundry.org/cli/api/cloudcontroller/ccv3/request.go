@@ -3,8 +3,8 @@ package ccv3
 import (
 	"io"
 	"net/http"
-	"net/url"
 
+	"code.cloudfoundry.org/cli/api/cloudcontroller"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3/internal"
 )
 
@@ -16,22 +16,22 @@ type requestOptions struct {
 	// Query is a list of HTTP query parameters. Query will overwrite any
 	// existing query string in the URI. If you want to preserve the query
 	// string in URI make sure Query is nil.
-	Query url.Values
+	Query []Query
 
 	// RequestName is the name of the request (see routes)
 	RequestName string
 
-	// URL is the request path.
-	URL string
 	// Method is the HTTP method.
 	Method string
+	// URL is the request path.
+	URL string
 	// Body is the content of the request.
-	Body io.Reader
+	Body io.ReadSeeker
 }
 
 // newHTTPRequest returns a constructed HTTP.Request with some defaults.
 // Defaults are applied when Request options are not filled in.
-func (client *Client) newHTTPRequest(passedRequest requestOptions) (*http.Request, error) {
+func (client *Client) newHTTPRequest(passedRequest requestOptions) (*cloudcontroller.Request, error) {
 	var request *http.Request
 	var err error
 
@@ -53,13 +53,16 @@ func (client *Client) newHTTPRequest(passedRequest requestOptions) (*http.Reques
 	}
 
 	if passedRequest.Query != nil {
-		request.URL.RawQuery = passedRequest.Query.Encode()
+		request.URL.RawQuery = FormatQueryParameters(passedRequest.Query).Encode()
 	}
 
 	request.Header = http.Header{}
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("User-Agent", client.userAgent)
 
-	return request, nil
+	if passedRequest.Body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+
+	return cloudcontroller.NewRequest(request, passedRequest.Body), nil
 }

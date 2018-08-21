@@ -25,6 +25,15 @@ func LoadCfResource(cfResource CfResource) *schema.Resource {
 		Schema: cfResource.Schema(),
 	}
 }
+func LoadCfResourceNoUpdate(cfResource CfResource) *schema.Resource {
+	return &schema.Resource{
+		Create: cfResource.Create,
+		Read:   cfResource.Read,
+		Delete: cfResource.Delete,
+		Exists: cfResource.Exists,
+		Schema: cfResource.Schema(),
+	}
+}
 func LoadCfDataSource(cfDataSource CfDataSource) *schema.Resource {
 	return &schema.Resource{
 		Read:   cfDataSource.DataSourceRead,

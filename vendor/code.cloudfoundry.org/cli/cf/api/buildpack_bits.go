@@ -53,8 +53,17 @@ func zipErrorHelper(err error) error {
 func (repo CloudControllerBuildpackBitsRepository) CreateBuildpackZipFile(buildpackPath string) (*os.File, string, error) {
 	zipFileToUpload, err := ioutil.TempFile("", "buildpack-upload")
 	if err != nil {
+		os.RemoveAll(zipFileToUpload.Name())
 		return nil, "", fmt.Errorf("%s: %s", T("Couldn't create temp file for upload"), err.Error())
 	}
+	defer os.RemoveAll(zipFileToUpload.Name())
+
+	var success bool
+	defer func() {
+		if !success {
+			os.RemoveAll(zipFileToUpload.Name())
+		}
+	}()
 
 	var buildpackFileName string
 	if isWebURL(buildpackPath) {
@@ -105,6 +114,7 @@ func (repo CloudControllerBuildpackBitsRepository) CreateBuildpackZipFile(buildp
 		}
 	}
 
+	success = true
 	return zipFileToUpload, buildpackFileName, nil
 }
 
@@ -217,9 +227,10 @@ func (repo CloudControllerBuildpackBitsRepository) downloadBuildpack(url string,
 
 		client := &http.Client{
 			Transport: &http.Transport{
-				Dial:            (&gonet.Dialer{Timeout: 5 * time.Second}).Dial,
-				TLSClientConfig: &tls.Config{RootCAs: certPool},
-				Proxy:           http.ProxyFromEnvironment,
+				DisableKeepAlives: true,
+				Dial:              (&gonet.Dialer{Timeout: 5 * time.Second}).Dial,
+				TLSClientConfig:   &tls.Config{RootCAs: certPool},
+				Proxy:             http.ProxyFromEnvironment,
 			},
 		}
 

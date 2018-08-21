@@ -262,6 +262,11 @@ func (c CfQuotaResource) Schema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Optional: true,
 		},
+		"spaces": {
+			Type:     schema.TypeList,
+			Computed: true,
+			Elem:     &schema.Schema{Type: schema.TypeString},
+		},
 	}
 }
 func (c CfQuotaResource) DataSourceSchema() map[string]*schema.Schema {

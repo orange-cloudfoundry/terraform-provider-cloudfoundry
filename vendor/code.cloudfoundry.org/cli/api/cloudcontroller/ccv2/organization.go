@@ -1,7 +1,9 @@
 package ccv2
 
 import (
+	"bytes"
 	"encoding/json"
+	"net/url"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
@@ -10,9 +12,19 @@ import (
 
 // Organization represents a Cloud Controller Organization.
 type Organization struct {
-	GUID                        string
-	Name                        string
-	QuotaDefinitionGUID         string
+
+	// GUID is the unique Organization identifier.
+	GUID string
+
+	// Name is the organization's name.
+	Name string
+
+	// QuotaDefinitionGUID is unique identifier of the quota assigned to this
+	// organization.
+	QuotaDefinitionGUID string
+
+	// DefaultIsolationSegmentGUID is the unique identifier of the isolation
+	// segment this organization is tagged with.
 	DefaultIsolationSegmentGUID string
 }
 
@@ -26,7 +38,8 @@ func (org *Organization) UnmarshalJSON(data []byte) error {
 			DefaultIsolationSegmentGUID string `json:"default_isolation_segment_guid"`
 		} `json:"entity"`
 	}
-	if err := json.Unmarshal(data, &ccOrg); err != nil {
+	err := cloudcontroller.DecodeJSON(data, &ccOrg)
+	if err != nil {
 		return err
 	}
 
@@ -37,7 +50,66 @@ func (org *Organization) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// GetOrganization returns an Organization associated with the provided guid.
+type createOrganizationRequestBody struct {
+	Name string `json:"name"`
+}
+
+func (client *Client) CreateOrganization(orgName string) (Organization, Warnings, error) {
+
+	requestBody := createOrganizationRequestBody{
+		Name: orgName,
+	}
+
+	bodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return Organization{}, nil, err
+	}
+
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.PostOrganizationRequest,
+		Body:        bytes.NewReader(bodyBytes),
+	})
+	/*
+		if err != nil {
+			return Organization{}, nil, err
+		}
+	*/
+
+	var org Organization
+	response := cloudcontroller.Response{
+		Result: &org,
+	}
+
+	err = client.connection.Make(request, &response)
+	return org, response.Warnings, err
+}
+
+// DeleteOrganization deletes the Organization associated with the provided
+// GUID. It will return the Cloud Controller job that is assigned to the
+// Organization deletion.
+func (client *Client) DeleteOrganization(guid string) (Job, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.DeleteOrganizationRequest,
+		URIParams:   Params{"organization_guid": guid},
+		Query: url.Values{
+			"recursive": {"true"},
+			"async":     {"true"},
+		},
+	})
+	if err != nil {
+		return Job{}, nil, err
+	}
+
+	var job Job
+	response := cloudcontroller.Response{
+		Result: &job,
+	}
+
+	err = client.connection.Make(request, &response)
+	return job, response.Warnings, err
+}
+
+// GetOrganization returns an Organization associated with the provided GUID.
 func (client *Client) GetOrganization(guid string) (Organization, Warnings, error) {
 	request, err := client.newHTTPRequest(requestOptions{
 		RequestName: internal.GetOrganizationRequest,
@@ -53,15 +125,17 @@ func (client *Client) GetOrganization(guid string) (Organization, Warnings, erro
 	}
 
 	err = client.connection.Make(request, &response)
-	return Organization(org), response.Warnings, err
+	return org, response.Warnings, err
 }
 
 // GetOrganizations returns back a list of Organizations based off of the
-// provided queries.
-func (client *Client) GetOrganizations(queries []Query) ([]Organization, Warnings, error) {
+// provided filters.
+func (client *Client) GetOrganizations(filters ...Filter) ([]Organization, Warnings, error) {
+	allQueries := ConvertFilterParameters(filters)
+	allQueries.Add("order-by", "name")
 	request, err := client.newHTTPRequest(requestOptions{
 		RequestName: internal.GetOrganizationsRequest,
-		Query:       FormatQueryParameters(queries),
+		Query:       allQueries,
 	})
 
 	if err != nil {

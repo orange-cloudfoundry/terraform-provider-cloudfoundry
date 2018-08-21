@@ -41,7 +41,6 @@ type apiErrResponse struct {
 type UserRepository interface {
 	FindByUsername(username string) (user models.UserFields, apiErr error)
 	FindAllByUsername(username string) (users []models.UserFields, apiErr error)
-	ListUsersInOrgForRole(orgGUID string, role models.Role) ([]models.UserFields, error)
 	ListUsersInOrgForRoleWithNoUAA(orgGUID string, role models.Role) ([]models.UserFields, error)
 	ListUsersInSpaceForRoleWithNoUAA(spaceGUID string, role models.Role) ([]models.UserFields, error)
 	Create(username, password string) (apiErr error)
@@ -74,6 +73,10 @@ func (repo CloudControllerUserRepository) FindByUsername(username string) (user 
 	if apiErr != nil {
 		return user, apiErr
 	}
+	if len(users) > 1 {
+		return user, errors.New("The user exists in multiple origins.")
+	}
+
 	user = users[0]
 
 	return user, nil
@@ -104,10 +107,6 @@ func (repo CloudControllerUserRepository) FindAllByUsername(username string) (us
 	return users, apiErr
 }
 
-func (repo CloudControllerUserRepository) ListUsersInOrgForRole(orgGUID string, roleName models.Role) (users []models.UserFields, apiErr error) {
-	return repo.listUsersWithPath(fmt.Sprintf("/v2/organizations/%s/%s", orgGUID, orgRoleToPathMap[roleName]))
-}
-
 func (repo CloudControllerUserRepository) ListUsersInOrgForRoleWithNoUAA(orgGUID string, roleName models.Role) (users []models.UserFields, apiErr error) {
 	return repo.listUsersWithPathWithNoUAA(fmt.Sprintf("/v2/organizations/%s/%s", orgGUID, orgRoleToPathMap[roleName]))
 }
@@ -130,38 +129,6 @@ func (repo CloudControllerUserRepository) listUsersWithPathWithNoUAA(path string
 		return
 	}
 
-	return
-}
-
-func (repo CloudControllerUserRepository) listUsersWithPath(path string) (users []models.UserFields, apiErr error) {
-	guidFilters := []string{}
-
-	apiErr = repo.ccGateway.ListPaginatedResources(
-		repo.config.APIEndpoint(),
-		path,
-		resources.UserResource{},
-		func(resource interface{}) bool {
-			user := resource.(resources.UserResource).ToFields()
-			users = append(users, user)
-			guidFilters = append(guidFilters, fmt.Sprintf(`ID eq "%s"`, user.GUID))
-			return true
-		})
-	if apiErr != nil {
-		return
-	}
-
-	if len(guidFilters) == 0 {
-		return
-	}
-
-	uaaEndpoint, apiErr := repo.getAuthEndpoint()
-	if apiErr != nil {
-		return
-	}
-
-	filter := strings.Join(guidFilters, " or ")
-	usersURL := fmt.Sprintf("%s/Users?attributes=id,userName&filter=%s", uaaEndpoint, neturl.QueryEscape(filter))
-	users, apiErr = repo.updateOrFindUsersWithUAAPath(users, usersURL)
 	return
 }
 
@@ -365,8 +332,9 @@ func (repo CloudControllerUserRepository) UnsetSpaceRoleByGUID(userGUID, spaceGU
 	if !found {
 		return fmt.Errorf(T("Invalid Role {{.Role}}", map[string]interface{}{"Role": role}))
 	}
+	apiURL := fmt.Sprintf("/v2/spaces/%s/%s/%s", spaceGUID, rolePath, userGUID)
 
-	return repo.ccGateway.DeleteResource(repo.config.APIEndpoint(), rolePath)
+	return repo.ccGateway.DeleteResource(repo.config.APIEndpoint(), apiURL)
 }
 
 func (repo CloudControllerUserRepository) checkSpaceRole(spaceGUID string, role models.Role) (string, error) {

@@ -18,20 +18,29 @@ type UAAConnection struct {
 }
 
 // NewConnection returns a pointer to a new UAA Connection
-func NewConnection(skipSSLValidation bool, dialTimeout time.Duration) *UAAConnection {
+func NewConnection(skipSSLValidation bool, disableKeepAlives bool, dialTimeout time.Duration) *UAAConnection {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: skipSSLValidation,
-		},
-		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			KeepAlive: 30 * time.Second,
 			Timeout:   dialTimeout,
 		}).DialContext,
+		DisableKeepAlives: disableKeepAlives,
+		Proxy:             http.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: skipSSLValidation,
+		},
 	}
 
 	return &UAAConnection{
-		HTTPClient: &http.Client{Transport: tr},
+		HTTPClient: &http.Client{
+			Transport: tr,
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+				// This prevents redirects. When making a request to /oauth/authorize,
+				// the client should not follow redirects in order to obtain the ssh
+				// passcode.
+				return http.ErrUseLastResponse
+			},
+		},
 	}
 }
 
@@ -51,18 +60,15 @@ func (connection *UAAConnection) Make(request *http.Request, passedResponse *Res
 	return connection.populateResponse(response, passedResponse)
 }
 
-func (connection *UAAConnection) processRequestErrors(request *http.Request, err error) error {
-	switch e := err.(type) {
-	case *url.Error:
-		if _, ok := e.Err.(x509.UnknownAuthorityError); ok {
-			return UnverifiedServerError{
-				URL: request.URL.String(),
-			}
+func (*UAAConnection) handleStatusCodes(response *http.Response, passedResponse *Response) error {
+	if response.StatusCode >= 400 {
+		return RawHTTPStatusError{
+			StatusCode:  response.StatusCode,
+			RawResponse: passedResponse.RawResponse,
 		}
-		return RequestError{Err: e}
-	default:
-		return err
 	}
+
+	return nil
 }
 
 func (connection *UAAConnection) populateResponse(response *http.Response, passedResponse *Response) error {
@@ -92,13 +98,16 @@ func (connection *UAAConnection) populateResponse(response *http.Response, passe
 	return nil
 }
 
-func (*UAAConnection) handleStatusCodes(response *http.Response, passedResponse *Response) error {
-	if response.StatusCode >= 400 {
-		return RawHTTPStatusError{
-			StatusCode:  response.StatusCode,
-			RawResponse: passedResponse.RawResponse,
+func (connection *UAAConnection) processRequestErrors(request *http.Request, err error) error {
+	switch e := err.(type) {
+	case *url.Error:
+		if _, ok := e.Err.(x509.UnknownAuthorityError); ok {
+			return UnverifiedServerError{
+				URL: request.URL.String(),
+			}
 		}
+		return RequestError{Err: e}
+	default:
+		return err
 	}
-
-	return nil
 }

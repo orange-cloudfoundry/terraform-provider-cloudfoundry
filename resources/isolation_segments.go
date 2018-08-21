@@ -5,9 +5,9 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/cf_client"
+	"github.com/orange-cloudfoundry/terraform-provider-cloudfoundry/common"
 	"github.com/viant/toolbox"
 	"log"
-	"net/url"
 )
 
 type CfIsolationSegmentsResource struct{}
@@ -45,10 +45,13 @@ func (c CfIsolationSegmentsResource) updateIsolationSegmentToOrg(client cf_clien
 		}
 	}
 	for _, orgId := range toDelete {
-		_, err := client.CCv3Client().RevokeIsolationSegmentFromOrganization(isoGuid, orgId)
+		_, err := client.CCv3Client().DeleteIsolationSegmentOrganization(isoGuid, orgId)
 		if err != nil {
 			return err
 		}
+	}
+	if len(toCreate) == 0 {
+		return nil
 	}
 	_, _, err := client.CCv3Client().EntitleIsolationSegmentToOrganizations(isoGuid, toCreate)
 	if err != nil {
@@ -58,7 +61,7 @@ func (c CfIsolationSegmentsResource) updateIsolationSegmentToOrg(client cf_clien
 }
 func (c CfIsolationSegmentsResource) retrieveOrgsIdFromIsolationSegment(client cf_client.Client, isoGuid string) ([]string, error) {
 	orgsId := make([]string, 0)
-	orgs, _, err := client.CCv3Client().GetIsolationSegmentOrganizationsByIsolationSegment(isoGuid)
+	orgs, _, err := client.CCv3Client().GetIsolationSegmentOrganizations(isoGuid)
 	if err != nil {
 		return orgsId, err
 	}
@@ -83,12 +86,8 @@ func (c CfIsolationSegmentsResource) Create(d *schema.ResourceData, meta interfa
 		}
 		d.SetId(segment.GUID)
 	}
-	currentOrgs, err := c.retrieveOrgsIdFromIsolationSegment(client, d.Id())
-	if err != nil {
-		return err
-	}
 
-	return c.updateIsolationSegmentToOrg(client, d.Id(), currentOrgs, segment.OrgsGUID)
+	return c.updateIsolationSegmentToOrg(client, d.Id(), make([]string, 0), segment.OrgsGUID)
 }
 
 func (c CfIsolationSegmentsResource) Read(d *schema.ResourceData, meta interface{}) error {
@@ -96,7 +95,7 @@ func (c CfIsolationSegmentsResource) Read(d *schema.ResourceData, meta interface
 	segmentCf, _, err := client.CCv3Client().GetIsolationSegment(d.Id())
 	segment := c.resourceObject(d)
 	if err != nil {
-		if _, ok := err.(ccerror.NotFoundError); ok {
+		if _, ok := err.(ccerror.ResourceNotFoundError); ok {
 			log.Printf(
 				"[WARN] removing isolation segment %s/%s from state because it no longer exists in your Cloud Foundry",
 				client.Config().ApiEndpoint,
@@ -108,15 +107,7 @@ func (c CfIsolationSegmentsResource) Read(d *schema.ResourceData, meta interface
 		return err
 	}
 	d.Set("name", segmentCf.Name)
-	orgsSchema := schema.NewSet(d.Get("orgs_id").(*schema.Set).F, make([]interface{}, 0))
-	currentOrgs, err := c.retrieveOrgsIdFromIsolationSegment(client, d.Id())
-	if err != nil {
-		return err
-	}
-	for _, orgId := range currentOrgs {
-		orgsSchema.Add(orgId)
-	}
-	d.Set("orgs_id", orgsSchema)
+
 	return nil
 }
 func (c CfIsolationSegmentsResource) Update(d *schema.ResourceData, meta interface{}) error {
@@ -124,7 +115,7 @@ func (c CfIsolationSegmentsResource) Update(d *schema.ResourceData, meta interfa
 	segment := c.resourceObject(d)
 	_, _, err := client.CCv3Client().GetIsolationSegment(d.Id())
 	if err != nil {
-		if _, ok := err.(ccerror.NotFoundError); ok {
+		if _, ok := err.(ccerror.ResourceNotFoundError); ok {
 			log.Printf(
 				"[WARN] removing isolation segment %s/%s from state because it no longer exists in your Cloud Foundry",
 				client.Config().ApiEndpoint,
@@ -135,11 +126,12 @@ func (c CfIsolationSegmentsResource) Update(d *schema.ResourceData, meta interfa
 		}
 		return err
 	}
-	currentOrgs, err := c.retrieveOrgsIdFromIsolationSegment(client, d.Id())
-	if err != nil {
-		return err
+	if !d.HasChange("orgs_id") {
+		return nil
 	}
-	return c.updateIsolationSegmentToOrg(client, d.Id(), currentOrgs, segment.OrgsGUID)
+	current, _ := d.GetChange("orgs_id")
+
+	return c.updateIsolationSegmentToOrg(client, d.Id(), common.SchemaSetToStringList(current.(*schema.Set)), segment.OrgsGUID)
 }
 
 func (c CfIsolationSegmentsResource) Delete(d *schema.ResourceData, meta interface{}) error {
@@ -147,13 +139,14 @@ func (c CfIsolationSegmentsResource) Delete(d *schema.ResourceData, meta interfa
 	_, err := client.CCv3Client().DeleteIsolationSegment(d.Id())
 	return err
 }
+
 func (c CfIsolationSegmentsResource) Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	client := meta.(cf_client.Client)
 	if d.Id() != "" {
 		d, _, err := client.CCv3Client().GetIsolationSegment(d.Id())
 
 		if err != nil {
-			if _, ok := err.(ccerror.NotFoundError); ok {
+			if _, ok := err.(ccerror.ResourceNotFoundError); ok {
 				return false, nil
 			}
 			return false, err
@@ -161,11 +154,12 @@ func (c CfIsolationSegmentsResource) Exists(d *schema.ResourceData, meta interfa
 		return d.GUID != "", nil
 	}
 	name := d.Get("name").(string)
-	segment, _, err := client.CCv3Client().GetIsolationSegments(url.Values{
-		"q": []string{"name:" + name},
+	segment, _, err := client.CCv3Client().GetIsolationSegments(ccv3.Query{
+		Key:    "q",
+		Values: []string{"name:" + name},
 	})
 	if err != nil {
-		if _, ok := err.(ccerror.NotFoundError); ok {
+		if _, ok := err.(ccerror.ResourceNotFoundError); ok {
 			return false, nil
 		}
 		return false, err
@@ -176,6 +170,7 @@ func (c CfIsolationSegmentsResource) Exists(d *schema.ResourceData, meta interfa
 	d.SetId(segment[0].GUID)
 	return true, nil
 }
+
 func (c CfIsolationSegmentsResource) Schema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": &schema.Schema{
@@ -184,10 +179,11 @@ func (c CfIsolationSegmentsResource) Schema() map[string]*schema.Schema {
 			ForceNew: true,
 		},
 		"orgs_id": &schema.Schema{
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem:     &schema.Schema{Type: schema.TypeString},
-			Set:      schema.HashString,
+			Type:       schema.TypeSet,
+			Optional:   true,
+			Deprecated: "use entitle_isolation_segment instead",
+			Elem:       &schema.Schema{Type: schema.TypeString},
+			Set:        schema.HashString,
 		},
 	}
 }

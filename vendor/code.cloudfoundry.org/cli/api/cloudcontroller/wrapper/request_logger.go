@@ -1,7 +1,7 @@
 package wrapper
 
 import (
-	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -15,9 +15,10 @@ import (
 
 // RequestLoggerOutput is the interface for displaying logs
 type RequestLoggerOutput interface {
-	DisplayJSONBody(body []byte) error
 	DisplayHeader(name string, value string) error
 	DisplayHost(name string) error
+	DisplayJSONBody(body []byte) error
+	DisplayMessage(msg string) error
 	DisplayRequestHeader(method string, uri string, httpProtocol string) error
 	DisplayResponseHeader(httpProtocol string, status string) error
 	DisplayType(name string, requestDate time.Time) error
@@ -40,14 +41,8 @@ func NewRequestLogger(output RequestLoggerOutput) *RequestLogger {
 	}
 }
 
-// Wrap sets the connection on the RequestLogger and returns itself
-func (logger *RequestLogger) Wrap(innerconnection cloudcontroller.Connection) cloudcontroller.Connection {
-	logger.connection = innerconnection
-	return logger
-}
-
 // Make records the request and the response to UI
-func (logger *RequestLogger) Make(request *http.Request, passedResponse *cloudcontroller.Response) error {
+func (logger *RequestLogger) Make(request *cloudcontroller.Request, passedResponse *cloudcontroller.Response) error {
 	err := logger.displayRequest(request)
 	if err != nil {
 		logger.output.HandleInternalError(err)
@@ -65,7 +60,13 @@ func (logger *RequestLogger) Make(request *http.Request, passedResponse *cloudco
 	return err
 }
 
-func (logger *RequestLogger) displayRequest(request *http.Request) error {
+// Wrap sets the connection on the RequestLogger and returns itself
+func (logger *RequestLogger) Wrap(innerconnection cloudcontroller.Connection) cloudcontroller.Connection {
+	logger.connection = innerconnection
+	return logger
+}
+
+func (logger *RequestLogger) displayRequest(request *cloudcontroller.Request) error {
 	err := logger.output.Start()
 	if err != nil {
 		return err
@@ -89,20 +90,31 @@ func (logger *RequestLogger) displayRequest(request *http.Request) error {
 		return err
 	}
 
-	if request.Body != nil && strings.Contains(request.Header.Get("Content-Type"), "json") {
-		rawRequestBody, err := ioutil.ReadAll(request.Body)
-		defer request.Body.Close()
-		if err != nil {
-			return err
-		}
+	contentType := request.Header.Get("Content-Type")
+	if request.Body != nil {
+		if strings.Contains(contentType, "json") {
+			rawRequestBody, err := ioutil.ReadAll(request.Body)
+			if err != nil {
+				return err
+			}
 
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(rawRequestBody))
-		err = logger.output.DisplayJSONBody(rawRequestBody)
-		if err != nil {
-			return err
+			defer request.ResetBody()
+
+			return logger.output.DisplayJSONBody(rawRequestBody)
+		} else if strings.Contains(contentType, "x-www-form-urlencoded") {
+			rawRequestBody, err := ioutil.ReadAll(request.Body)
+			if err != nil {
+				return err
+			}
+
+			defer request.ResetBody()
+
+			return logger.output.DisplayMessage(fmt.Sprintf("[application/x-www-form-urlencoded %s]", rawRequestBody))
 		}
 	}
-
+	if contentType != "" {
+		return logger.output.DisplayMessage(fmt.Sprintf("[%s Content Hidden]", strings.Split(contentType, ";")[0]))
+	}
 	return nil
 }
 

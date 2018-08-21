@@ -1,10 +1,8 @@
 package cloudcontroller
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -15,17 +13,17 @@ import (
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 )
 
+// Config is for configuring a CloudControllerConnection.
+type Config struct {
+	DialTimeout       time.Duration
+	SkipSSLValidation bool
+}
+
 // CloudControllerConnection represents a connection to the Cloud Controller
 // server.
 type CloudControllerConnection struct {
 	HTTPClient *http.Client
 	UserAgent  string
-}
-
-// Config is for configuring a CloudControllerConnection.
-type Config struct {
-	DialTimeout       time.Duration
-	SkipSSLValidation bool
 }
 
 // NewConnection returns a new CloudControllerConnection with provided
@@ -48,21 +46,97 @@ func NewConnection(config Config) *CloudControllerConnection {
 }
 
 // Make performs the request and parses the response.
-func (connection *CloudControllerConnection) Make(request *http.Request, passedResponse *Response) error {
+func (connection *CloudControllerConnection) Make(request *Request, passedResponse *Response) error {
 	// In case this function is called from a retry, passedResponse may already
 	// be populated with a previous response. We reset in case there's an HTTP
 	// error and we don't repopulate it in populateResponse.
 	passedResponse.reset()
 
-	response, err := connection.HTTPClient.Do(request)
+	response, err := connection.HTTPClient.Do(request.Request)
 	if err != nil {
-		return connection.processRequestErrors(request, err)
+		return connection.processRequestErrors(request.Request, err)
 	}
 
 	return connection.populateResponse(response, passedResponse)
 }
 
-func (connection *CloudControllerConnection) processRequestErrors(request *http.Request, err error) error {
+func (*CloudControllerConnection) handleStatusCodes(response *http.Response, passedResponse *Response) error {
+	if response.StatusCode == http.StatusNoContent {
+		passedResponse.RawResponse = []byte("{}")
+	} else {
+		rawBytes, err := ioutil.ReadAll(response.Body)
+		defer response.Body.Close()
+		if err != nil {
+			return err
+		}
+
+		passedResponse.RawResponse = rawBytes
+	}
+
+	if response.StatusCode >= 400 {
+		return ccerror.RawHTTPStatusError{
+			StatusCode:  response.StatusCode,
+			RawResponse: passedResponse.RawResponse,
+			RequestIDs:  response.Header["X-Vcap-Request-Id"],
+		}
+	}
+
+	return nil
+}
+
+// handleWarnings looks for the "X-Cf-Warnings" header in the cloud controller
+// response and URI decodes them. The value can contain multiple warnings that
+// are comma separated.
+func (*CloudControllerConnection) handleWarnings(response *http.Response) ([]string, error) {
+	rawWarnings := response.Header.Get("X-Cf-Warnings")
+	if len(rawWarnings) == 0 {
+		return nil, nil
+	}
+
+	var warnings []string
+	for _, rawWarning := range strings.Split(rawWarnings, ",") {
+		warning, err := url.QueryUnescape(rawWarning)
+		if err != nil {
+			return nil, err
+		}
+		warnings = append(warnings, strings.Trim(warning, " "))
+	}
+
+	return warnings, nil
+}
+
+func (connection *CloudControllerConnection) populateResponse(response *http.Response, passedResponse *Response) error {
+	passedResponse.HTTPResponse = response
+
+	warnings, err := connection.handleWarnings(response)
+	if err != nil {
+		return err
+	}
+	passedResponse.Warnings = warnings
+
+	if resourceLocationURL := response.Header.Get("Location"); resourceLocationURL != "" {
+		passedResponse.ResourceLocationURL = resourceLocationURL
+	}
+
+	err = connection.handleStatusCodes(response, passedResponse)
+	if err != nil {
+		return err
+	}
+
+	// TODO: only unmarshal on 'application/json', skip otherwise - Fixing this
+	// todo will require changing ALL the API tests to include the content-type
+	// in their tests.
+	if passedResponse.Result != nil {
+		err = DecodeJSON(passedResponse.RawResponse, passedResponse.Result)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (*CloudControllerConnection) processRequestErrors(request *http.Request, err error) error {
 	switch e := err.(type) {
 	case *url.Error:
 		switch urlErr := e.Err.(type) {
@@ -80,54 +154,4 @@ func (connection *CloudControllerConnection) processRequestErrors(request *http.
 	default:
 		return err
 	}
-}
-
-func (connection *CloudControllerConnection) populateResponse(response *http.Response, passedResponse *Response) error {
-	passedResponse.HTTPResponse = response
-
-	// The cloud controller returns warnings with key "X-Cf-Warnings", and the
-	// value is a comma seperated string.
-	if rawWarnings := response.Header.Get("X-Cf-Warnings"); rawWarnings != "" {
-		passedResponse.Warnings = []string{}
-		for _, warning := range strings.Split(rawWarnings, ",") {
-			warningTrimmed := strings.Trim(warning, " ")
-			passedResponse.Warnings = append(passedResponse.Warnings, warningTrimmed)
-		}
-	}
-
-	rawBytes, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
-	if err != nil {
-		return err
-	}
-
-	passedResponse.RawResponse = rawBytes
-
-	err = connection.handleStatusCodes(response, passedResponse)
-	if err != nil {
-		return err
-	}
-
-	if passedResponse.Result != nil {
-		decoder := json.NewDecoder(bytes.NewBuffer(passedResponse.RawResponse))
-		decoder.UseNumber()
-		err = decoder.Decode(passedResponse.Result)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (*CloudControllerConnection) handleStatusCodes(response *http.Response, passedResponse *Response) error {
-	if response.StatusCode >= 400 {
-		return ccerror.RawHTTPStatusError{
-			StatusCode:  response.StatusCode,
-			RawResponse: passedResponse.RawResponse,
-			RequestIDs:  response.Header["X-Vcap-Request-Id"],
-		}
-	}
-
-	return nil
 }

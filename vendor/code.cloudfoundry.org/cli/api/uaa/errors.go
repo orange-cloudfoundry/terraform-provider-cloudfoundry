@@ -52,6 +52,15 @@ func (e RequestError) Error() string {
 	return e.Err.Error()
 }
 
+// UnauthorizedError is returned when the authentication informatin is invalid.
+type UnauthorizedError struct {
+	Message string
+}
+
+func (e UnauthorizedError) Error() string {
+	return e.Message
+}
+
 // InvalidAuthTokenError is returned when the client has an invalid
 // authorization header.
 type InvalidAuthTokenError struct {

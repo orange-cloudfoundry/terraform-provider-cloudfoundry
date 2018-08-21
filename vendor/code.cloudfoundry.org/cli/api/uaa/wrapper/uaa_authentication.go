@@ -13,7 +13,7 @@ import (
 
 // UAAClient is the interface for getting a valid access token
 type UAAClient interface {
-	RefreshAccessToken(refreshToken string) (uaa.RefreshToken, error)
+	RefreshAccessToken(refreshToken string) (uaa.RefreshedTokens, error)
 }
 
 //go:generate counterfeiter . TokenCache
@@ -43,15 +43,13 @@ func NewUAAAuthentication(client UAAClient, cache TokenCache) *UAAAuthentication
 	}
 }
 
-// Wrap sets the connection on the UAAAuthentication and returns itself
-func (t *UAAAuthentication) Wrap(innerconnection uaa.Connection) uaa.Connection {
-	t.connection = innerconnection
-	return t
-}
-
 // Make adds authentication headers to the passed in request and then calls the
 // wrapped connection's Make
 func (t *UAAAuthentication) Make(request *http.Request, passedResponse *uaa.Response) error {
+	if t.client == nil {
+		return t.connection.Make(request, passedResponse)
+	}
+
 	var err error
 	var rawRequestBody []byte
 
@@ -64,10 +62,7 @@ func (t *UAAAuthentication) Make(request *http.Request, passedResponse *uaa.Resp
 
 		request.Body = ioutil.NopCloser(bytes.NewBuffer(rawRequestBody))
 
-		// The authentication header is not added to the token refresh request.
-		if strings.Contains(request.URL.String(), "/oauth/token") &&
-			request.Method == http.MethodPost &&
-			strings.Contains(string(rawRequestBody), "grant_type=refresh_token") {
+		if skipAuthenticationHeader(request, rawRequestBody) {
 			return t.connection.Make(request, passedResponse)
 		}
 	}
@@ -76,14 +71,13 @@ func (t *UAAAuthentication) Make(request *http.Request, passedResponse *uaa.Resp
 
 	err = t.connection.Make(request, passedResponse)
 	if _, ok := err.(uaa.InvalidAuthTokenError); ok {
-		var token uaa.RefreshToken
-		token, err = t.client.RefreshAccessToken(t.cache.RefreshToken())
-		if err != nil {
-			return err
+		tokens, refreshErr := t.client.RefreshAccessToken(t.cache.RefreshToken())
+		if refreshErr != nil {
+			return refreshErr
 		}
 
-		t.cache.SetAccessToken(token.AuthorizationToken())
-		t.cache.SetRefreshToken(token.RefreshToken)
+		t.cache.SetAccessToken(tokens.AuthorizationToken())
+		t.cache.SetRefreshToken(tokens.RefreshToken)
 
 		if rawRequestBody != nil {
 			request.Body = ioutil.NopCloser(bytes.NewBuffer(rawRequestBody))
@@ -93,4 +87,27 @@ func (t *UAAAuthentication) Make(request *http.Request, passedResponse *uaa.Resp
 	}
 
 	return err
+}
+
+// SetClient sets the UAA client that the wrapper will use.
+func (t *UAAAuthentication) SetClient(client UAAClient) {
+	t.client = client
+}
+
+// Wrap sets the connection on the UAAAuthentication and returns itself
+func (t *UAAAuthentication) Wrap(innerconnection uaa.Connection) uaa.Connection {
+	t.connection = innerconnection
+	return t
+}
+
+// The authentication header is not added to token refresh requests or login
+// requests.
+func skipAuthenticationHeader(request *http.Request, body []byte) bool {
+	stringBody := string(body)
+
+	return strings.Contains(request.URL.String(), "/oauth/token") &&
+		request.Method == http.MethodPost &&
+		(strings.Contains(stringBody, "grant_type=refresh_token") ||
+			strings.Contains(stringBody, "grant_type=password") ||
+			strings.Contains(stringBody, "grant_type=client_credentials"))
 }

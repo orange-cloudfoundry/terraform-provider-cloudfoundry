@@ -1,6 +1,6 @@
 language: go
 go:
-- 1.9
+- "1.10"
 install:
 - go get github.com/hashicorp/terraform
 - go get github.com/onsi/ginkgo/ginkgo
@@ -11,10 +11,9 @@ script:
     echo "You need to run `go fmt`"
     exit 1
   fi
-- go test `go list ./... | grep -v vendor` -v
 after_success:
 - cd $GOPATH/src/github.com/hashicorp/terraform
-- git checkout v0.11.7
+- git checkout v0.11.8
 - cd $GOPATH/src/github.com/orange-cloudfoundry/terraform-provider-cloudfoundry
 - bin/build-all.sh 0.11
 deploy:

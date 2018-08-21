@@ -127,7 +127,7 @@ func (client *CfClient) Init() error {
 	if err != nil {
 		return err
 	}
-	repository := NewTerraformRepository()
+	repository := NewTerraformRepository(client.config.AppName, client.config.AppVersion, client.config.SkipInsecureSSL)
 	repository.SetAPIEndpoint(client.config.ApiEndpoint)
 	repository.SetAPIVersion(ccClient.APIVersion())
 	repository.SetAsyncTimeout(uint(30))
@@ -145,16 +145,7 @@ func (client *CfClient) Init() error {
 	i18n.T = i18n.Init(repository)
 	//Retry Wrapper
 	logger := NewCfLogger(client.config.Verbose)
-
-	client.uaaClient = uaa.NewClient(uaa.Config{
-		AppName:           client.config.AppName,
-		AppVersion:        client.config.AppVersion,
-		ClientID:          "cf",
-		ClientSecret:      "",
-		DialTimeout:       time.Duration(1) * time.Second,
-		SkipSSLValidation: client.config.SkipSSLValidation(),
-		URL:               ccClient.TokenEndpoint(),
-	})
+	client.uaaClient = uaa.NewClient(repository)
 	client.uaaClient.WrapConnection(uaaWrapper.NewUAAAuthentication(client.uaaClient, repository))
 	client.uaaClient.WrapConnection(uaaWrapper.NewRetryRequest(2))
 
@@ -164,8 +155,6 @@ func (client *CfClient) Init() error {
 		client.uaaClient,
 	)
 	client.gateways = gateways
-
-
 
 	client.uaaRepo = authentication.NewUAARepository(gateways.UAAGateway,
 		repository,

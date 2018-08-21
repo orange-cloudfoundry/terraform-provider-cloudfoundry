@@ -17,6 +17,9 @@
 // <Top Level Endpoint>, the pluralization is removed from said endpoint in the
 // method name.
 //
+// Additionally, if the endpoint is an "action" endpoint, do not include the
+// word "Action" in the method name.
+//
 // For Example:
 //   Method Name: GetApplication
 //   Endpoint: /v3/applications/:guid
@@ -40,15 +43,19 @@
 //   Endpoint: /v3/apps/:application_guid/task
 //   Action Name: Post
 //   Top Level Endpoint: apps
-//   Return Value: []Task
+//   Return Value: Task
 //
 // Use the following table to determine which HTTP Command equates to which
 // Action Name:
 //   HTTP Command -> Action Name
-//   POST -> Create
+//   POST -> Create OR Update*
 //   GET -> Get
 //   PUT -> Update
 //   DELETE -> Delete
+//   PATCH -> Update
+//
+// * - In some cases POSTs are updating resources, in these cases the method
+// should be called Update, not Create.
 //
 // Method Locations
 //
@@ -61,13 +68,14 @@
 // from the Cloud Controller should be placed in the errorWrapper. Everything
 // else can be handled in the individual operations. All parsed cloud
 // controller errors should exist in errors.go, all generic HTTP errors should
-// exist in the cloudcontroller's errors.go. Errors related to the individaul
+// exist in the cloudcontroller's errors.go. Errors related to the individual
 // operation should exist at the top of that operation's file.
 package ccv3
 
 import (
 	"fmt"
 	"runtime"
+	"time"
 
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv3/internal"
@@ -79,13 +87,16 @@ type Warnings []string
 
 // Client can be used to talk to a Cloud Controller's V3 Endpoints.
 type Client struct {
-	APIInfo
+	Info
 	cloudControllerURL string
 
 	connection cloudcontroller.Connection
 	router     *internal.Router
 	userAgent  string
 	wrappers   []ConnectionWrapper
+
+	jobPollingInterval time.Duration
+	jobPollingTimeout  time.Duration
 }
 
 // Config allows the Client to be configured
@@ -96,11 +107,11 @@ type Config struct {
 	// AppVersion is the version of the application/process using the client.
 	AppVersion string
 
-	// // JobPollingTimeout is the maximum amount of time a job polls for.
-	// JobPollingTimeout time.Duration
+	// JobPollingTimeout is the maximum amount of time a job polls for.
+	JobPollingTimeout time.Duration
 
-	// // JobPollingInterval is the wait time between job polls.
-	// JobPollingInterval time.Duration
+	// JobPollingInterval is the wait time between job polls.
+	JobPollingInterval time.Duration
 
 	// Wrappers that apply to the client connection.
 	Wrappers []ConnectionWrapper
@@ -110,7 +121,9 @@ type Config struct {
 func NewClient(config Config) *Client {
 	userAgent := fmt.Sprintf("%s/%s (%s; %s %s)", config.AppName, config.AppVersion, runtime.Version(), runtime.GOARCH, runtime.GOOS)
 	return &Client{
-		userAgent: userAgent,
-		wrappers:  append([]ConnectionWrapper{newErrorWrapper()}, config.Wrappers...),
+		userAgent:          userAgent,
+		jobPollingInterval: config.JobPollingInterval,
+		jobPollingTimeout:  config.JobPollingTimeout,
+		wrappers:           append([]ConnectionWrapper{newErrorWrapper()}, config.Wrappers...),
 	}
 }

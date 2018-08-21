@@ -2,18 +2,17 @@ package internal
 
 import (
 	"net/http"
-
-	"github.com/tedsuo/rata"
 )
 
 const (
-	RefreshTokenRequest = "RefreshToken"
-	NewUserRequest      = "NewUser"
+	GetSSHPasscodeRequest = "GetSSHPasscode"
+	PostOAuthTokenRequest = "PostOAuthToken"
+	PostUserRequest       = "PostUser"
 )
 
-// Routes is a list of routes used by the rata library to construct request
-// URLs.
-var Routes = rata.Routes{
-	{Path: "/oauth/token", Method: http.MethodPost, Name: RefreshTokenRequest},
-	{Path: "/Users", Method: http.MethodPost, Name: NewUserRequest},
+// APIRoutes is a list of routes used by the router to construct request URLs.
+var APIRoutes = []Route{
+	{Path: "/Users", Method: http.MethodPost, Name: PostUserRequest, Resource: UAAResource},
+	{Path: "/oauth/authorize", Method: http.MethodGet, Name: GetSSHPasscodeRequest, Resource: UAAResource},
+	{Path: "/oauth/token", Method: http.MethodPost, Name: PostOAuthTokenRequest, Resource: AuthorizationResource},
 }

@@ -570,23 +570,16 @@ resource "cloudfoundry_route" "route_superroute" {
 
 ### Isolation segments
 
-**IMPORTANT NOTE**:
-- Isolation segments are in development on cloud foundry and only available with cloud controller api V3.
-- My actual Cloud Foundry doesn't have isolation segment and resource could **not be tested**
-- **Use at your own risk, there is no warranty**
-
 #### Resource
 
 ```tf
 resource "cloudfoundry_isolation_segment" "my_isolation_segment" {
   name = "isolation_segment_name_set_in_cf_deployment"
-  orgs_id = ["${cloudfoundry_organization.org_mysuperorg.id}"]
-  // or by_id = "a-guid"
 }
 ```
 
 - **name**: (**Required if by_id not set**) Isolation segment that you have set on your cloud foundry deployment.
-- **orgs_id**: (**Required**) *(Optional, default: `null`)* You can pass a list of organization created from resource or data source [cloudfoundry_organization](#organizations), this will put those organizations in the isolation segment.
+- **orgs_id**: **DEPRACTED USE [entitlement](#isolation-segments-entitlement) instead** (**Required**) *(Optional, default: `null`)* You can pass a list of organization created from resource or data source [cloudfoundry_organization](#organizations), this will put those organizations in the isolation segment.
 - **by_id**: (**Required if name not set**) by_id of your isolation segment.
 
 #### Data source
@@ -600,6 +593,40 @@ data "cloudfoundry_isolation_segment" "my_isolation_segment" {
 ```
 
 - **name**: (**Required**) Isolation segment that you have set on your cloud foundry deployment.
+
+---
+
+### Isolation segments entitlement
+
+#### Resource
+
+```tf
+resource "cloudfoundry_isolation_segment_entitlement" "private_mysuperorg" {
+  segment_id = "${cloudfoundry_isolation_segment.my_isolation_segment.id}"
+  org_id = "${cloudfoundry_organization.org_mysuperorg.id}"
+  default = false
+}
+```
+
+- **segment_id**: (**Required**) Isolation segment id to use.
+- **org_id**: (**Required**) Organization id to be entitled by this segment.
+- **default**: *(Optional, default: `false`)* Set this isolation segment as default segment for this organization.
+
+---
+
+### Isolation segments space
+
+#### Resource
+
+```tf
+resource "cloudfoundry_isolation_segment_space" "private_mysuperspace" {
+  segment_id = "${cloudfoundry_isolation_segment.my_isolation_segment.id}"
+  space_id = "${cloudfoundry_organization.space_mysuperspace.id}"
+}
+```
+
+- **segment_id**: (**Required**) Isolation segment id to use.
+- **space_id**: (**Required**) Space id where assign segment.\
 
 ----
 

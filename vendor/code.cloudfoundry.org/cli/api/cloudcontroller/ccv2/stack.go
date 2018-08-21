@@ -1,16 +1,20 @@
 package ccv2
 
 import (
-	"encoding/json"
-
 	"code.cloudfoundry.org/cli/api/cloudcontroller"
+	"code.cloudfoundry.org/cli/api/cloudcontroller/ccerror"
 	"code.cloudfoundry.org/cli/api/cloudcontroller/ccv2/internal"
 )
 
 // Stack represents a Cloud Controller Stack.
 type Stack struct {
-	GUID        string
-	Name        string
+	// GUID is the unique stack identifier.
+	GUID string
+
+	// Name is the name given to the stack.
+	Name string
+
+	// Description is the description of the stack.
 	Description string
 }
 
@@ -23,7 +27,8 @@ func (stack *Stack) UnmarshalJSON(data []byte) error {
 			Description string `json:"description"`
 		} `json:"entity"`
 	}
-	if err := json.Unmarshal(data, &ccStack); err != nil {
+	err := cloudcontroller.DecodeJSON(data, &ccStack)
+	if err != nil {
 		return err
 	}
 
@@ -50,4 +55,30 @@ func (client *Client) GetStack(guid string) (Stack, Warnings, error) {
 
 	err = client.connection.Make(request, &response)
 	return stack, response.Warnings, err
+}
+
+// GetStacks returns a list of Stacks based off of the provided filters.
+func (client *Client) GetStacks(filters ...Filter) ([]Stack, Warnings, error) {
+	request, err := client.newHTTPRequest(requestOptions{
+		RequestName: internal.GetStacksRequest,
+		Query:       ConvertFilterParameters(filters),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var fullStacksList []Stack
+	warnings, err := client.paginate(request, Stack{}, func(item interface{}) error {
+		if space, ok := item.(Stack); ok {
+			fullStacksList = append(fullStacksList, space)
+		} else {
+			return ccerror.UnknownObjectInListError{
+				Expected:   Stack{},
+				Unexpected: item,
+			}
+		}
+		return nil
+	})
+
+	return fullStacksList, warnings, err
 }

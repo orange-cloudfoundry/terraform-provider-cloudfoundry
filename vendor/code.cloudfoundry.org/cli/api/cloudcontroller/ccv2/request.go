@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"code.cloudfoundry.org/cli/api/cloudcontroller"
 )
 
 // Params represents URI parameters for a request.
@@ -12,8 +14,11 @@ type Params map[string]string
 
 // requestOptions contains all the options to create an HTTP request.
 type requestOptions struct {
-	// URIParams are the list URI route parameters
-	URIParams Params
+	// Body is the request body
+	Body io.ReadSeeker
+
+	// Method is the HTTP method of the request.
+	Method string
 
 	// Query is a list of HTTP query parameters
 	Query url.Values
@@ -23,16 +28,14 @@ type requestOptions struct {
 
 	// URI is the URI of the request.
 	URI string
-	// Method is the HTTP method of the request.
-	Method string
 
-	// Body is the request body
-	Body io.Reader
+	// URIParams are the list URI route parameters
+	URIParams Params
 }
 
 // newHTTPRequest returns a constructed HTTP.Request with some defaults.
 // Defaults are applied when Request fields are not filled in.
-func (client Client) newHTTPRequest(passedRequest requestOptions) (*http.Request, error) {
+func (client Client) newHTTPRequest(passedRequest requestOptions) (*cloudcontroller.Request, error) {
 	var request *http.Request
 	var err error
 	if passedRequest.URI != "" {
@@ -57,8 +60,12 @@ func (client Client) newHTTPRequest(passedRequest requestOptions) (*http.Request
 
 	request.Header = http.Header{}
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("User-Agent", client.userAgent)
 
-	return request, nil
+	if passedRequest.Body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+
+	// Make sure the body is the same as the one in the request
+	return cloudcontroller.NewRequest(request, passedRequest.Body), nil
 }
