@@ -26,6 +26,8 @@ This terraform provider supports the use-case of managing a Cloud Foundry instan
 - [Domains](#domains)
 - [Routes](#routes)
 - [Isolation Segments](#isolation-segments)
+- [Isolation Segments Entitlement](#isolation-segments-entitlement)
+- [Isolation Segments Space](#isolation-segments-space)
 - [Stacks](#stacks)
 - [Environment Variable Group](#environment-variable-group)
 - [Applications](#applications)
@@ -592,7 +594,8 @@ data "cloudfoundry_isolation_segment" "my_isolation_segment" {
 }
 ```
 
-- **name**: (**Required**) Isolation segment that you have set on your cloud foundry deployment.
+- **name**: (**Required if `first` not set**) Isolation segment that you have set on your cloud foundry deployment.
+- **first**:  Get the first non `shared` isolation segment.
 
 ---
 

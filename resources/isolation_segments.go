@@ -187,10 +187,32 @@ func (c CfIsolationSegmentsResource) Schema() map[string]*schema.Schema {
 		},
 	}
 }
+
 func (c CfIsolationSegmentsResource) DataSourceSchema() map[string]*schema.Schema {
-	return CreateDataSourceSchema(c, "name")
+	sch := CreateDataSourceSchema(c, "name")
+	sch["first"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+	}
+	return sch
 }
+
 func (c CfIsolationSegmentsResource) DataSourceRead(d *schema.ResourceData, meta interface{}) error {
-	fn := CreateDataSourceReadFuncWithReq(c, "name")
-	return fn(d, meta)
+	if !d.Get("first").(bool) {
+		fn := CreateDataSourceReadFuncWithReq(c, "name")
+		return fn(d, meta)
+	}
+	client := meta.(cf_client.Client)
+	iss, _, err := client.CCv3Client().GetIsolationSegments()
+	if err != nil {
+		return err
+	}
+	for _, is := range iss {
+		if is.Name != "shared" {
+			d.SetId(is.GUID)
+			d.Set("name", is.Name)
+			return nil
+		}
+	}
+	return nil
 }
